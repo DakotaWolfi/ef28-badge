@@ -142,3 +142,53 @@ std::unique_ptr<FSMState> MenuMain::touchEventNoseLongpress() {
     this->entry();
     return nullptr;
 }
+
+std::unique_ptr<FSMState> MenuMain::touchEventNoseShortpress() {//show Battery Precent  new funktion to do currently more of an place holder
+    EFLed.clear();
+    EFLed.setDragonEye(CRGB(0,25,100));
+    //EFDisplay.init();
+
+    uint8_t BatteryChargePrecent = EFBoard.getBatteryCapacityPercent();
+
+    /*
+    LOGF_DEBUG("(MenuMain) init display ",);
+    // animate to new brightness
+    CRGB data[EFLED_EFBAR_NUM];
+    fill_solid(data, EFLED_EFBAR_NUM, CRGB::Black);
+
+    fill_solid(data, map(BatteryChargePrecent, 0, 100, 0, EFLED_EFBAR_NUM), CRGB(100, 100, 100));
+    EFLed.setEFBar(data);
+*/
+    delay(100);
+
+    // reset view
+    this->entry();
+    return nullptr;
+}
+
+std::unique_ptr<FSMState> MenuMain::touchEventNoseRelease() {//show Battery Precent  new funktion 
+    EFLed.clear();
+    EFLed.setDragonEye(CRGB(0,25,100));
+
+    uint8_t BatteryChargePrecent = EFBoard.getBatteryCapacityPercent();
+
+    LOGF_DEBUG("(MenuMain) Showing Battery Precentage on LEDS %d %%\r\n", BatteryChargePrecent);
+
+    // animate to new brightness
+    CRGB data[EFLED_EFBAR_NUM];
+    fill_solid(data, EFLED_EFBAR_NUM, CRGB::Black);
+
+    //fill_solid(data, map(BatteryChargePrecent, 0, 100, 0, EFLED_EFBAR_NUM), CRGB(100, 100, 100));
+
+    uint8_t ledsOn = map(BatteryChargePrecent, 0, 100, 0, EFLED_EFBAR_NUM);
+    // Fill from (total - ledsOn) to end
+    fill_solid(&data[EFLED_EFBAR_NUM - ledsOn], ledsOn, CRGB(100, 100, 100));
+
+    EFLed.setEFBar(data);
+    delay(600);
+
+    // reset view
+    this->entry();
+    return nullptr;
+}
+
