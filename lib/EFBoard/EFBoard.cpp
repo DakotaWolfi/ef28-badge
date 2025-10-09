@@ -57,6 +57,7 @@ void EFBoardClass::setup() {
     LOG_INFO("(EFBoard) Initializing badge ...");
     LOGF_INFO("(EFBoard) Boot #%d - %s\r\n", this->getWakeupCount(), this->getWakeupReason());
     LOGF_INFO("(EFBoard) Firmware version: %s (compiled: %s @ %s)\r\n", EFBOARD_FIRMWARE_VERSION, __DATE__, __TIME__);
+    LOGF_INFO("(EFBoard) Battery type: %s\r\n", EFBOARD_BAT_TYPE_NAME);
 
     // CPU frequency
     LOGF_DEBUG("(EFBoard) Initial CPU frequency: %d\r\n", getCpuFrequencyMhz());
@@ -154,6 +155,36 @@ const bool EFBoardClass::isBatteryPowered() {
 }
 
 const uint8_t EFBoardClass::getBatteryCapacityPercent() {
+
+#ifdef EFBOARD_BAT_TYPE_LIION
+    return this->getBatteryCapacityLiIonPercent();
+#elif defined(EFBOARD_BAT_TYPE_ALKALINE)
+    return this->getBatteryCapacityAlkalinePercent();
+#else
+    #error "No battery type defined! Define EFBOARD_BAT_TYPE_LIION or EFBOARD_BAT_TYPE_ALKALINE"
+#endif
+}
+
+const uint8_t EFBoardClass::getBatteryCapacityLiIonPercent() {
+    const float v = this->getBatteryVoltage();     // single Li-ion cell
+    static const float T[][2] = {                  // {voltage, percent}
+        {4.20f,100},{4.10f,92},{4.00f,84},{3.90f,74},
+        {3.80f,58},{3.70f,42},{3.60f,26},{3.50f, 0}
+    };
+    if (v >= T[0][0]) return 100;
+    if (v <= T[7][0]) return 0;
+    for (int i=0;i<7;i++){
+        if (v <= T[i][0] && v >= T[i+1][0]) {
+            float t = (T[i][0]-v)/(T[i][0]-T[i+1][0]);
+            float p = T[i][1] + t*(T[i+1][1]-T[i][1]);
+            if (p<0) p=0; else if (p>100) p=100;
+            return (uint8_t)(p+0.5f);
+        }
+    }
+    return 0;
+}
+
+const uint8_t EFBoardClass::getBatteryCapacityAlkalinePercent() {
     /* Used Varta Longlife AA cells discharge curve as a base.
      *
      * We consider 1.12 V as empty even though the cells are not empty at that
