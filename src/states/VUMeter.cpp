@@ -1,7 +1,7 @@
 // MIT License
 //
-// Copyright 2024 Eurofurence e.V. 
-// 
+// Copyright 2024 Eurofurence e.V.
+//
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the “Software”),
 // to deal in the Software without restriction, including without limitation
@@ -29,106 +29,135 @@
 
 #include "FSMState.h"
 
-#define AUDIO_PIN 14
+#define AUDIO_PIN 4
+#define DRAGON_LED_NUM 6
+#define DRAGON_SLOW 3
+#define BAR_LED_NUM 11
+#define LEDS_NUM DRAGON_LED_NUM + BAR_LED_NUM
+#define MIN_LEVEL 40
+#define LEVEL_DIVISOR 4
 
-const int hue_list[] = {
-110,110,110,110,110,110,110,110,110,110,110
-};
+uint8_t dragon_hue = 130;
+const int samples = 500;
 
-const char* VUMeter::getName() {
+
+const char *VUMeter::getName()
+{
     return "VUMeter";
 }
 
-bool VUMeter::shouldBeRemembered() {
+bool VUMeter::shouldBeRemembered()
+{
     return true;
 }
-
-void VUMeter::entry() {
+void VUMeter::entry()
+{
     this->tick = 0;
 }
 
-int sMin = 0;
-int sMax = 4096;
+int sMin = 4096; // make shure to be outside the range from 0-4095
+int sMax = -1;
+int sMaxLevel = MIN_LEVEL; // provide minimal level not to
+int nl = 32;
 
-void VUMeter::run() {
+CRGB leds[LEDS_NUM];
 
-    int sample = analogRead(AUDIO_PIN);
+void VUMeter::run()
+{
+    sMin = 4096; // make shure to be outside the range from 0-4095
+    sMax = -1;
 
-    // Update max and min values
-    if (sample < sMin) {
-        sMin = sample;
+    // take "samples" Samples and determin min and max
+    for (int s = 0; s < samples; s++)
+    {
+        int sample = analogRead(AUDIO_PIN);
+
+        // Update max and min values
+        if (sample < sMin)
+        {
+            sMin = sample;
+        }
+        if (sample > sMax)
+        {
+            sMax = sample;
+        }
     }
-    if (sample > sMax) {
-        sMax = sample;
-    }
-
 
     // Calculate peak-to-peak range (this is the signal strength)
     int peakToPeak = sMax - sMin;
 
-    // Map the peak-to-peak value to a range of 0 to NUM_LEDS
-    uint8_t n = map(peakToPeak, 0, 4096, 0, 12);
+    // Determin Maxlevel recorded
+//    if (sMaxLevel < peakToPeak)
+//        sMaxLevel = peakToPeak;
 
+    // Map the peak-to-peak value to a range of 0 to NUM_LEDS * 256 - 1
+    uint16_t n = map(peakToPeak, 0, sMaxLevel, 0, 256 * BAR_LED_NUM - 1);
 
-    std::vector<CRGB> dragon = {
-        CRGB::Black,
-        CHSV(0, 255, 40),
-        CHSV(0, 255, 110),
-        CHSV(0, 255, 255),
-        CRGB::Black,
-        CRGB::Black
-    };
+//    LOGF_DEBUG("(VUMeter) Min: %d Max: %d peakToPeak: %d Maxlevel: %d Mapped: %d\r\n", sMin, sMax, peakToPeak, sMaxLevel, n);
 
-    std::vector<CRGB> bar = {
-        CHSV(hue_list[0], 255, (n > 0 ? 0 : 255)),
-        CHSV(hue_list[1], 255, (n > 1 ? 0 : 255)),
-        CHSV(hue_list[2], 255, (n > 2 ? 0 : 255)),
-        CHSV(hue_list[3], 255, (n > 3 ? 0 : 255)),
-        CHSV(hue_list[4], 255, (n > 4 ? 0 : 255)),
-        CHSV(hue_list[5], 255, (n > 5 ? 0 : 255)),
-        CHSV(hue_list[6], 255, (n > 6 ? 0 : 255)),
-        CHSV(hue_list[7], 255, (n > 7 ? 0 : 255)),
-        CHSV(hue_list[8], 255, (n > 8 ? 0 : 255)),
-        CHSV(hue_list[9], 255, (n > 9 ? 0 : 255)),
-        CHSV(hue_list[10], 255, (n > 10 ? 0 : 255)),
-    };
+    // VU Meter
+    for (int i = 0; i < BAR_LED_NUM; ++i)
+    {
+        leds[LEDS_NUM - 1 - i] = CHSV((uint8_t)(this->tick + i * (256 / (BAR_LED_NUM + 1)) % 256), 255,
+            (uint8_t)(n >= 256 * (i + 1) ? 255 : n >= 256 * (i) ? n % 256 : 0));
+        // LOGF_DEBUG("(VUMeter) LED: %d H: %d S: %d V: %d\r\n", LEDS_NUM - 1 - i, (this->tick + i * 21) % 256, 255, (uint8_t)(n >= 256 * (i + 1) ? 255 : n >= 256 * (i) ? n % 256 : 0));
 
-    // Calculate current pattern based on tick
-    std::rotate(dragon.begin(), dragon.begin() + this->tick % EFLED_DRAGON_NUM, dragon.end());
-    std::rotate(bar.rbegin(), bar.rbegin() + this->tick % EFLED_EFBAR_NUM, bar.rend());
+    }
 
-    dragon.insert(dragon.end(), bar.begin(), bar.end());
-    EFLed.setAll(dragon.data());
+    // Dragon Face
+    for (int i = 0; i < DRAGON_LED_NUM; ++i) {
+         leds[i] = CHSV(dragon_hue, 255, (uint8_t)( 255 - (((i * DRAGON_SLOW + tick) * (256 / (DRAGON_LED_NUM * DRAGON_SLOW)) ) % 256 )));
+    }
 
-    // Prepare next tick
+    EFLed.setAll(leds);
+
     this->tick++;
+
+    sMaxLevel = sMaxLevel + ((peakToPeak * LEVEL_DIVISOR) - sMaxLevel) * 0.01;
+    if (sMaxLevel < MIN_LEVEL ) sMaxLevel = MIN_LEVEL; // Enshure staying at or above minlevel
+
 }
 
-std::unique_ptr<FSMState> VUMeter::touchEventFingerprintShortpress() {
-    if (this->isLocked()) {
+std::unique_ptr<FSMState> VUMeter::touchEventFingerprintShortpress()
+{
+    if (this->isLocked())
+    {
         return nullptr;
     }
 
     return std::make_unique<MenuMain>();
 }
 
-std::unique_ptr<FSMState> VUMeter::touchEventFingerprintLongpress() {
+std::unique_ptr<FSMState> VUMeter::touchEventFingerprintLongpress()
+{
     return this->touchEventFingerprintShortpress();
 }
 
-std::unique_ptr<FSMState> VUMeter::touchEventFingerprintRelease() {
-    if (this->isLocked()) {
+std::unique_ptr<FSMState> VUMeter::touchEventFingerprintRelease()
+{
+    if (this->isLocked())
+    {
         return nullptr;
     }
 
-    this->globals->animMatrixIdx = (this->globals->animMatrixIdx + 1) % 9;
-    this->is_globals_dirty = true;
-    this->tick = 0;
+    dragon_hue = (dragon_hue + 31) % 256;
 
     return nullptr;
 }
 
-std::unique_ptr<FSMState> VUMeter::touchEventAllLongpress() {
+std::unique_ptr<FSMState> VUMeter::touchEventAllLongpress()
+{
     this->toggleLock();
     return nullptr;
+}
+
+long map_l(long x, long in_min, long in_max, long out_min, long out_max) {
+    const long run = in_max - in_min;
+    if(run == 0){
+        log_e("map(): Invalid input range, min == max");
+        return -1; // AVR returns -1, SAM returns 0
+    }
+    const long rise = out_max - out_min;
+    const long delta = x - in_min;
+    return (delta * rise) / run + out_min;
 }
