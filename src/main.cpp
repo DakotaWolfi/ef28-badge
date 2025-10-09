@@ -33,6 +33,7 @@
 #include <EFLogging.h>
 #include <EFLed.h>
 #include <EFTouch.h>
+//#include <EFDisplay.h>
 
 #include "FSM.h"
 #include "FSMGlobals.h"
@@ -228,8 +229,20 @@ void boopupAnimation() {
     delay(80);
     EFLed.setDragonEye(CRGB(10,0, 0));
     delay(60);
-    EFLed.setDragonNose(CRGB::Black);
+    EFLed.setDragonEye(CRGB(0,0, 0));
     delay(200);
+    EFLed.setDragonNose(CRGB(0,50,100));
+    delay(60);
+    EFLed.setDragonNose(CRGB(0,0,0));
+    delay(60);
+    EFLed.setDragonNose(CRGB(0,50,100));
+    delay(60);
+    EFLed.setDragonNose(CRGB(0,0,0));
+    delay(60);
+    EFLed.setDragonNose(CRGB(0,50,100));
+    delay(60);
+    EFLed.setDragonNose(CRGB(0,0,0));
+    delay(60);
 }
 
 /**
@@ -240,6 +253,7 @@ void setup() {
     EFBoard.setup();
     EFLed.init(ABSOLUTE_MAX_BRIGHTNESS);
     EFLed.setBrightnessPercent(40);  // We do not have access to the settings yet, default to 40
+    //EFDisplay.init();//Display Bootup Animation
     boopupAnimation();
     
     // Touchy stuff
@@ -264,6 +278,7 @@ void setup() {
  * @brief Main program loop
  */
 void loop() {
+    //EFDisplay.loop();//Display loop call
     // Handler: ISR Events
     if (isrEvents.allLongpress) {
         fsm.queueEvent(FSMEvent::AllLongpress);
