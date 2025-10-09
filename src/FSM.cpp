@@ -64,6 +64,7 @@ void FSM::resume() {
         case 4: this->transition(std::make_unique<AnimateHeartbeat>()); break;
 		case 6: this->transition(std::make_unique<GameHuemesh>()); break;
 		case 7: this->transition(std::make_unique<VUMeter>()); break;
+        case 8: this->transition(std::make_unique<AnimatePerlin>()); break;
         default:
             LOGF_WARNING("(FSM) Failed to resume to unknown state: %d\r\n", this->globals->resumeStateIdx);
             this->transition(std::make_unique<DisplayPrideFlag>());
