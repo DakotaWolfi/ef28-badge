@@ -354,6 +354,8 @@ struct MenuMain : public FSMState {
     virtual std::unique_ptr<FSMState> touchEventFingerprintShortpress() override;
     virtual std::unique_ptr<FSMState> touchEventFingerprintLongpress() override;
     virtual std::unique_ptr<FSMState> touchEventNoseLongpress() override;
+    virtual std::unique_ptr<FSMState> touchEventNoseShortpress() override;
+    virtual std::unique_ptr<FSMState> touchEventNoseRelease() override;
 };
 
 #endif /* FSM_STATE_H_ */
