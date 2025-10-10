@@ -3,8 +3,8 @@
 
 // MIT License
 //
-// Copyright 2024 Eurofurence e.V. 
-// 
+// Copyright 2024 Eurofurence e.V.
+//
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the “Software”),
 // to deal in the Software without restriction, including without limitation
@@ -39,19 +39,25 @@
 // --- choose battery type ---
 #define EFBOARD_BAT_TYPE_LIION     // or comment this out to use Alkaline
 //#define EFBOARD_BAT_TYPE_ALKALINE
-#define EFBOARD_NUM_BATTERIES 3            //!< Number of battery cells used for V_BAT
-#define EFBOARD_VBAT_MAX (1.60 * EFBOARD_NUM_BATTERIES) //!< Voltage at which battery cells are considered full
-#define EFBOARD_VBAT_MIN (1.13 * EFBOARD_NUM_BATTERIES) //!< Voltage at which battery cells are considered empty
 
 #define EFBOARD_BROWN_OUT_SOFT EFBOARD_VBAT_MIN //!< V_BAT threshold after which a soft brown out is triggered
 #define EFBOARD_BROWN_OUT_HARD (EFBOARD_BROWN_OUT_SOFT - 0.08) //!< V_BAT threshold after which a hard brown out is triggered
 
 #ifdef EFBOARD_BAT_TYPE_LIION
     #define EFBOARD_BAT_TYPE_NAME "LiIon"
+    #define EFBOARD_NUM_BATTERIES 1            //!< Number of battery cells used for V_BAT NOTE: LiIon LIPo should only use Singel Cell Akku do not use anything else
+    #define EFBOARD_VBAT_MAX (4.2 * EFBOARD_NUM_BATTERIES) //!< Voltage at which battery cells are considered full
+    #define EFBOARD_VBAT_MIN (3.4 * EFBOARD_NUM_BATTERIES) //!< Voltage at which battery cells are considered empty
 #elif defined(EFBOARD_BAT_TYPE_ALKALINE)
     #define EFBOARD_BAT_TYPE_NAME "Alkaline"
-#else
+    #define EFBOARD_NUM_BATTERIES 3            //!< Number of battery cells used for V_BAT
+    #define EFBOARD_VBAT_MAX (1.60 * EFBOARD_NUM_BATTERIES) //!< Voltage at which battery cells are considered full
+    #define EFBOARD_VBAT_MIN (1.13 * EFBOARD_NUM_BATTERIES) //!< Voltage at which battery cells are considered empty
+#else //assume Akaline
     #define EFBOARD_BAT_TYPE_NAME "Unknown"
+    #define EFBOARD_NUM_BATTERIES 3            //!< Number of battery cells used for V_BAT
+    #define EFBOARD_VBAT_MAX (1.60 * EFBOARD_NUM_BATTERIES) //!< Voltage at which battery cells are considered full
+    #define EFBOARD_VBAT_MIN (1.13 * EFBOARD_NUM_BATTERIES) //!< Voltage at which battery cells are considered empty
 #endif
 
 /**
@@ -61,7 +67,7 @@ class EFBoardClass {
 
     protected:
 
-        EFBoardPowerState power_state;  //!< Power state of the board during the last check 
+        EFBoardPowerState power_state;  //!< Power state of the board during the last check
 
     public:
 
@@ -69,7 +75,6 @@ class EFBoardClass {
          * @brief Constructs a new EFBoard instance.
          */
         EFBoardClass();
-        
         /**
          * @brief Performs basic initialization of the badge
          */
@@ -77,35 +82,35 @@ class EFBoardClass {
 
         /**
          * @brief Returns the number of boots / wakeups since power on
-         * 
+         *
          * @return Wakeup count since power on
          */
         unsigned int getWakeupCount();
 
         /**
          * @brief Retrieves the cause for the last wakeup in a human-readable form.
-         * 
+         *
          * @return Wakeup reason as string
          */
         const char* getWakeupReason();
 
         /**
          * @brief Reads the current battery voltage
-         * 
+         *
          * @return Current battery voltage
          */
         const float getBatteryVoltage();
 
         /**
          * @brief Determiens if the badge currently has batteries connected to it
-         * 
+         *
          * @return True if batterys were detected
          */
         const bool isBatteryPowered();
 
         /**
          * @brief Approximates current battery capacity level in percent
-         * 
+         *
          * @return Current approx. battery capacity level in percent (0 - 100)
          */
                 const uint8_t getBatteryCapacityPercent();
@@ -113,15 +118,15 @@ class EFBoardClass {
         /**
          * @brief Approximates current battery capacity level in percent
          * this funktion should be used if thebord is run on AA Batteries not on Litium Akku
-         * 
+         *
          * @return Current approx. battery capacity level in percent (0 - 100)
-         */        
+         */
         const uint8_t getBatteryCapacityLiIonPercent();
 
         /**
          * @brief Approximates current battery capacity level in percent
          * this funktion should be used if thebord is run on AA Batteries not on Litium Akku
-         * 
+         *
          * @return Current approx. battery capacity level in percent (0 - 100)
          */
         const uint8_t getBatteryCapacityAlkalinePercent();
@@ -129,9 +134,9 @@ class EFBoardClass {
          * @brief Updates the power state of the board. If a brown out state was
          * reached once, the board power state does not automatically recover
          * from this.
-         * 
+         *
          * If you wish to reset the brown out condition use resetPowerState().
-         * 
+         *
          * @return The detected power state
          */
 
@@ -139,16 +144,16 @@ class EFBoardClass {
          * @brief Updates the power state of the board. If a brown out state was
          * reached once, the board power state does not automatically recover
          * from this.
-         * 
+         *
          * If you wish to reset the brown out condition use resetPowerState().
-         * 
+         *
          * @return The detected power state
          */
         const EFBoardPowerState updatePowerState();
 
         /**
          * @brief Retrieves the last known power state
-         * 
+         *
          * @return Last detected power state
          */
         const EFBoardPowerState getPowerState();
@@ -156,14 +161,14 @@ class EFBoardClass {
         /**
          * @brief Resets and updates the power state of the board. This method
          * allows to clear previously set brown out states.
-         * 
+         *
          * @return The detected power state
          */
         const EFBoardPowerState resetPowerState();
 
         /**
          * @brief Tries to connect to the given WiFi access point
-         * 
+         *
          * @param ssid SSID of the WiFi network to connect to
          * @param password WPA2 password for the WiFi network
          * @return True, if the connection was successful
@@ -172,14 +177,14 @@ class EFBoardClass {
 
         /**
          * @brief Disconnects from any WiFi network and disables the radio modem
-         * 
+         *
          * @return True if the radio modem was sucessfully disabled
          */
         bool disableWifi();
-        
+
         /**
          * @brief Enables OTA update receiver
-         * 
+         *
          * @param password Optional password to protect the OTA API. If empty, no
          * password is required (DANGER!)
          */
@@ -189,7 +194,7 @@ class EFBoardClass {
          * @brief Disabled OTA update receiver
          */
         void disableOTA();
-        
+
         /**
          * @brief Writes a credit block to the serial console
          */
