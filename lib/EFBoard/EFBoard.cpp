@@ -98,6 +98,7 @@ void EFBoardClass::setup() {
     // Wifi modem stuff
     this->disableWifi();
     this->disableOTA();
+    //this->enableOTA();
 
     LOG_INFO("(EFBoard) Initialization complete")
 }
@@ -419,9 +420,21 @@ void EFBoardClass::printCredits() {
     LOG("#                                                                  #");
     LOG("# Visit https://eurofurence.org/EF28/badge for end of transmission #");
     LOG("#                                                                  #");
+    LOG("#                                                                  #");
+    LOG("# this FW was expanded by Jenna                                    #");
+    LOG("#                                                                  #");
+    LOG("# ░░░█░█▀▀░█▀█░█▀█░█▀█░                                            #");
+    LOG("# ░▄░█░█▀▀░█░█░█░█░█▀█░                                            #");
+    LOG("# ░▀▀▀░▀▀▀░▀░▀░▀░▀░▀░▀░                                            #");
     LOG("####################################################################");
 }
+/*
+░
+█
+▄
+▀
 
+*/
 #if !defined(NO_GLOBAL_INSTANCES) && !defined(NO_GLOBAL_EFBOARD)
 EFBoardClass EFBoard;
 #endif
