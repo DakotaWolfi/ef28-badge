@@ -52,6 +52,12 @@ class EFDisplayClass {
 
     void bootupAnimation();
 
+    // ✅ NEW: simple text printing helpers
+    void printString(const String& text);                                  // clears + prints at (0, baseline)
+    void printStringAt(const String& text, int x, int y, bool clear=true); // choose position; optional clear
+
+
+
 // --- Audio reactive additions ---
     void audioInit();
     void audioTick();

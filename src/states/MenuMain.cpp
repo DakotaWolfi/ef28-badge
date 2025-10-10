@@ -33,7 +33,7 @@
 /**
  * @brief Number of registered menu items
  */
-#define MENUMAIN_NUM_MENU_ITEMS 8
+#define MENUMAIN_NUM_MENU_ITEMS 9
 
 CRGB menuColors[11] = {
     CRGB(40,10,10),
@@ -89,9 +89,10 @@ std::unique_ptr<FSMState> MenuMain::touchEventFingerprintShortpress() {
         case 2: return std::make_unique<AnimateMatrix>();
         case 3: return std::make_unique<AnimateSnake>();
         case 4: return std::make_unique<AnimateHeartbeat>();
-//        case 5: return std::make_unique<OTAUpdate>(); // OTA Update not in production firmware
+//      case 5: return std::make_unique<OTAUpdate>(); // OTA Update not in production firmware
 		case 6: return std::make_unique<GameHuemesh>(); //Game :3
 		case 7: return std::make_unique<VUMeter>(); //VUMeter :3
+        case 8: return std::make_unique<GameFoxHuntBle>(); //Game BLE FoxHunt :3
         default: return nullptr;
     }
 }

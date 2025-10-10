@@ -95,3 +95,6 @@ std::unique_ptr<FSMState> AnimatePerlin::touchEventNoseShortpress() {
 
     return nullptr;
 }
+std::unique_ptr<FSMState> GameHuemesh::touchEventFingerprintLongpress() {
+	return std::make_unique<MenuMain>();
+}

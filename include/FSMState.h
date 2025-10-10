@@ -334,6 +334,26 @@ struct GameHuemesh : public FSMState {
     virtual std::unique_ptr<FSMState> touchEventAllLongpress() override;
 };
 
+/**
+ * @brief Fox-hunt (BLE RSSI) game
+ */
+struct GameFoxHuntBle : public FSMState {
+    uint32_t tick = 0;
+
+    virtual const char* getName() override;
+    virtual bool shouldBeRemembered() override;
+
+    virtual void entry() override;
+    virtual void run() override;
+    virtual void exit() override;
+
+    // Touch routing (same signature style as your other states)
+    virtual std::unique_ptr<FSMState> touchEventFingerprintShortpress() override;
+    virtual std::unique_ptr<FSMState> touchEventFingerprintLongpress() override;
+    virtual std::unique_ptr<FSMState> touchEventNoseShortpress() override;
+    virtual std::unique_ptr<FSMState> touchEventNoseLongpress() override;
+    virtual std::unique_ptr<FSMState> touchEventAllLongpress() override;
+};
 
 /**
  * @brief Displays matrix animation

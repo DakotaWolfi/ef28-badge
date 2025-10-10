@@ -81,9 +81,7 @@ void EFDisplayClass::init() {
     LOG_INFO("Display setup!");
 
     audioInit();         // <— optional now; enable when you want
-    bootupAnimation();
-
-    bootupAnimation();
+    //bootupAnimation();
 }
 
 void EFDisplayClass::loop() {
@@ -265,6 +263,26 @@ void EFDisplayClass::eyeOutline() const {
         int in = (p + 1) % point_size;
         u8g2.drawLine(points[p][0] + x_offset, points[p][1] + y_offset, points[in][0] + x_offset, points[in][1] + y_offset);
     }
+}
+
+// Convenience: print at default spot (x=0, y=12) and clear first
+void EFDisplayClass::printString(const String& text) {
+    printStringAt(text, 0, 12, true);
+}
+
+// Flexible: choose x/y and whether to clear first
+void EFDisplayClass::printStringAt(const String& text, int x, int y, bool clear) {
+    if (clear) {
+        u8g2.clearBuffer();
+    }
+
+    // Use whatever font you already prefer
+    u8g2.setFont(u8g2_font_5x8_tr);
+
+    // NOTE: u8g2 expects a baseline y, not top-left; 12 is a good baseline for 5x8 font
+    u8g2.drawStr(x, y, text.c_str());
+
+    u8g2.sendBuffer();
 }
 
 void EFDisplayClass::animationTick() const {

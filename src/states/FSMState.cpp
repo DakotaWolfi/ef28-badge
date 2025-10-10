@@ -64,7 +64,7 @@ void FSMState::unlock() {
         delay(200);
     }
 
-    LOG_INFO("(FSM) Unlocked current state")
+    LOG_INFO("(FSM) Unlocked current state");
 }
 
 void FSMState::toggleLock() {

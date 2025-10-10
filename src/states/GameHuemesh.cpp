@@ -239,9 +239,7 @@ std::unique_ptr<FSMState> GameHuemesh::touchEventFingerprintShortpress() {
 	return nullptr;
 }
 
-std::unique_ptr<FSMState> GameHuemesh::touchEventFingerprintLongpress() {
-	return std::make_unique<MenuMain>();
-}
+
 
 std::unique_ptr<FSMState> GameHuemesh::touchEventFingerprintRelease() {
 	if (this->isLocked()) {
