@@ -24,6 +24,9 @@
  * @author Honigeintopf
  */
 
+//#define HasDisplay
+
+
 #include <Arduino.h>
 #include <ArduinoOTA.h>
 #include <FastLED.h>
@@ -33,8 +36,9 @@
 #include <EFLogging.h>
 #include <EFLed.h>
 #include <EFTouch.h>
-#include <EFDisplay.h>
-
+#ifdef HasDisplay
+    #include <EFDisplay.h>
+#endif
 #include "FSM.h"
 #include "FSMGlobals.h"
 #include "util.h"
@@ -253,7 +257,9 @@ void setup() {
     EFBoard.setup();
     EFLed.init(ABSOLUTE_MAX_BRIGHTNESS);
     EFLed.setBrightnessPercent(40);  // We do not have access to the settings yet, default to 40
-    EFDisplay.init();//Display Bootup Animation
+    #ifdef HasDisplay
+        EFDisplay.init();//Display Bootup Animation
+    #endif
     boopupAnimation();
 
     // Touchy stuff
@@ -278,7 +284,9 @@ void setup() {
  * @brief Main program loop
  */
 void loop() {
-    EFDisplay.loop();//Display loop call
+    #ifdef HasDisplay
+        EFDisplay.loop();//Display loop call
+    #endif
     // Handler: ISR Events
     if (isrEvents.allLongpress) {
         fsm.queueEvent(FSMEvent::AllLongpress);

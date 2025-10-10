@@ -125,12 +125,12 @@ static uint8_t rssiToPercent(int rssi) {
 static void showPercent(uint8_t pct) {
   uint8_t N = (pct * EFLED_EFBAR_NUM) / 100;
   for (uint8_t i=0;i<EFLED_EFBAR_NUM;i++)
-    EFLed.setEFBar(i, (i < N) ? CRGB(0,50,100) : CRGB::Black);
+    EFLed.setEFBar(i, (i < N) ? CRGB(0,50,100) : CRGB(25,0,0));
 }
 static void showCount(uint8_t count) {
   uint8_t N = (count > EFLED_EFBAR_NUM) ? EFLED_EFBAR_NUM : count;
   for (uint8_t i=0;i<EFLED_EFBAR_NUM;i++)
-    EFLed.setEFBar(i, (i < N) ? CRGB(0,50,100) : CRGB::Black);
+    EFLed.setEFBar(i, (i < N) ? CRGB(0,50,100) : CRGB(25,0,0));
 }
 
 // Adapter so we don’t need BLE callbacks in the header
@@ -271,7 +271,7 @@ void GameFoxHuntBle::run() {
     int freshCnt  = freshCount();
 
     // pull & reset callback counter atomically-enough for our purposes
-    uint32_t cb = s_seenCallbacks; 
+    uint32_t cb = s_seenCallbacks;
     s_seenCallbacks = 0;
 
     // build a short, dense HUD line
