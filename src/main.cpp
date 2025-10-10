@@ -1,7 +1,7 @@
 // MIT License
 //
-// Copyright 2024 Eurofurence e.V. 
-// 
+// Copyright 2024 Eurofurence e.V.
+//
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the “Software”),
 // to deal in the Software without restriction, including without limitation
@@ -33,7 +33,7 @@
 #include <EFLogging.h>
 #include <EFLed.h>
 #include <EFTouch.h>
-//#include <EFDisplay.h>
+#include <EFDisplay.h>
 
 #include "FSM.h"
 #include "FSMGlobals.h"
@@ -253,9 +253,9 @@ void setup() {
     EFBoard.setup();
     EFLed.init(ABSOLUTE_MAX_BRIGHTNESS);
     EFLed.setBrightnessPercent(40);  // We do not have access to the settings yet, default to 40
-    //EFDisplay.init();//Display Bootup Animation
+    EFDisplay.init();//Display Bootup Animation
     boopupAnimation();
-    
+
     // Touchy stuff
     EFTouch.init();
     EFTouch.attachInterruptOnTouch(EFTouchZone::Fingerprint, isr_fingerprintTouch);
@@ -271,14 +271,14 @@ void setup() {
 
     // Get FSM going
     fsm.resume();
-	
+
 }
 
 /**
  * @brief Main program loop
  */
 void loop() {
-    //EFDisplay.loop();//Display loop call
+    EFDisplay.loop();//Display loop call
     // Handler: ISR Events
     if (isrEvents.allLongpress) {
         fsm.queueEvent(FSMEvent::AllLongpress);
@@ -350,5 +350,5 @@ void loop() {
         batteryCheck();
         task_battery = millis() + INTERVAL_BATTERY_CHECK;
     }
-	
+
 }

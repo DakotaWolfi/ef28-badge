@@ -26,6 +26,7 @@
 
 #include <EFLed.h>
 #include <EFLogging.h>
+#include <EFBoard.h>
 
 #include "FSMState.h"
 
@@ -148,7 +149,7 @@ std::unique_ptr<FSMState> MenuMain::touchEventNoseShortpress() {//show Battery P
     EFLed.setDragonEye(CRGB(0,25,100));
     //EFDisplay.init();
 
-    uint8_t BatteryChargePrecent = EFBoard.getBatteryCapacityPercent();
+    //uint8_t BatteryChargePrecent = EFBoard.getBatteryCapacityPercent();
 
     /*
     LOGF_DEBUG("(MenuMain) init display ",);
@@ -166,7 +167,7 @@ std::unique_ptr<FSMState> MenuMain::touchEventNoseShortpress() {//show Battery P
     return nullptr;
 }
 
-std::unique_ptr<FSMState> MenuMain::touchEventNoseRelease() {//show Battery Precent  new funktion 
+std::unique_ptr<FSMState> MenuMain::touchEventNoseRelease() {//show Battery Precent  new funktion
     EFLed.clear();
     EFLed.setDragonEye(CRGB(0,25,100));
 
