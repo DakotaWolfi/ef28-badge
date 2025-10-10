@@ -51,6 +51,10 @@ class EFDisplayClass {
     void updatePowerInfo() const;
 
     void bootupAnimation();
+
+// --- Audio reactive additions ---
+    void audioInit();
+    void audioTick();
 };
 
 #if !defined(NO_GLOBAL_INSTANCES) && !defined(NO_GLOBAL_EFDISPLAY)

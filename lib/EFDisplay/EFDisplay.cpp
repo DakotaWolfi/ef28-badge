@@ -34,11 +34,24 @@
 
 #include "EFDisplay.h"
 
+#include <math.h>   // for fabsf
+#include <esp_system.h>   // for esp_random()
+
 #define OLED_CS    5   // Chip Select
 #define OLED_DC    6   // Data/Command
 #define OLED_RESET 7   // Reset
 #define OLED_MOSI  17  // MOSI
 #define OLED_SCLK  18  // SCLK
+
+// --- AUDIO / NOISE CONFIG ---
+#define AUDIO_PIN   4
+#define NOISE_PIN   12   // <- use exactly one floating pin
+float g_audio_level = 0.0f;
+// ---- Audio state (module-scope) ----
+// If you haven't wired audio into the animator yet, these just sit idle.
+static float audio_dc  = 2048.0f;   // DC estimate (midpoint for 12-bit ADC)
+static float audio_env = 0.0f;      // smoothed envelope
+// g_audio_level is already defined above by you: float g_audio_level = 0.0f;
 
 
 static uint16_t counter = 0;
@@ -67,12 +80,15 @@ void EFDisplayClass::init() {
     u8g2.clearBuffer();
     LOG_INFO("Display setup!");
 
+    audioInit();         // <— optional now; enable when you want
+    bootupAnimation();
+
     bootupAnimation();
 }
 
 void EFDisplayClass::loop() {
     u8g2.clearBuffer();
-
+    audioTick();         // <— optional now; enable when you want
     animationTick();
 
     //EFLed.setDragonEye(CRGB(60, 60, 100));
@@ -322,6 +338,48 @@ void EFDisplayClass::bootupAnimation() {
 //    }
 //    u8g2.drawStr(0, 20, "111110000011111");
     u8g2.sendBuffer();
+}
+
+void EFDisplayClass::audioInit() {
+    pinMode(AUDIO_PIN, INPUT);
+    pinMode(NOISE_PIN, INPUT);   // leave floating
+}
+
+void EFDisplayClass::audioTick() {
+    int s = analogRead(AUDIO_PIN);
+    audio_dc  = 0.995f * audio_dc + 0.005f * (float)s;
+    float ac  = (float)s - audio_dc;
+    float mag = fabsf(ac);
+
+    const float ATTACK  = 0.20f;
+    const float RELEASE = 0.01f;
+    if (mag > audio_env) audio_env = ATTACK  * mag + (1.0f - ATTACK)  * audio_env;
+    else                 audio_env = RELEASE * mag + (1.0f - RELEASE) * audio_env;
+
+    // ---- single-pin EM hiss (or hardware RNG fallback) ----
+    float hiss = 0.0f;
+
+    // Try ADC read from the chosen floating pin
+    int nv = analogRead(NOISE_PIN);          // if not ADC-capable, may be 0/4095 or noisy anyway
+    hiss = (nv & 1023) * (1.0f / 1023.0f);   // normalize to ~0..1
+
+    // If that read looks “stuck”, blend in ESP32 hardware RNG (cheap & good entropy)
+    #ifdef ARDUINO_ARCH_ESP32
+    if (nv == 0 || nv == 4095) {
+    uint32_t r = esp_random();
+    hiss = (float)(r & 1023) * (1.0f / 1023.0f);
+}
+    #endif
+
+    float envNorm = audio_env * (1.0f / 1024.0f);
+    if (envNorm < 0) envNorm = 0; else if (envNorm > 1) envNorm = 1;
+
+    // Keep hiss subtle; it just prevents dead-flat silence
+    const float HISS_MIX = 0.15f;            // tune 0.05..0.25 to taste
+    float lvl = (1.0f - HISS_MIX) * envNorm + HISS_MIX * hiss;
+    if (lvl < 0) lvl = 0; else if (lvl > 1) lvl = 1;
+
+    g_audio_level = lvl;
 }
 
 #if !defined(NO_GLOBAL_INSTANCES) && !defined(NO_GLOBAL_EFDISPLAY)
