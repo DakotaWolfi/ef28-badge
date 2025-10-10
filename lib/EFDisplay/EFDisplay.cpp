@@ -49,6 +49,11 @@ int battery_update_counter = 0;
 int battery_percentage = 0;
 float battery_voltage = 0;
 
+// define these near the top of EFDisplay.cpp to avoid magic numbers
+// Your coordinate system with U8G2_R3 ends up X: 0..63, Y: 0..127
+static constexpr int SCR_W = 64;
+static constexpr int SCR_H = 128;
+
 
 std::vector<GlitchLine*> lines = {};
 
@@ -75,8 +80,19 @@ void EFDisplayClass::loop() {
 
     updatePowerInfo();
 
+    /*$
     if(random(0, 1000) == 0) {
         lines.insert(lines.end(), new GlitchLine());
+    }
+    */
+    // New: small steady chance + occasional bursts
+    if (random(0, 180) == 0) {
+        lines.push_back(new GlitchLine());
+    }
+    // rare burst: spawn 3–6 lines at once
+    if (random(0, 1200) == 0) {
+        int n = random(3, 7);
+        while (n--) lines.push_back(new GlitchLine());
     }
 
     animateGlitchLines();
@@ -106,15 +122,73 @@ void EFDisplayClass::updatePowerInfo() const {
 }
 
 void EFDisplayClass::animateGlitchLines() const {
-    for(auto line: lines) {
-        if(!line->isFinished()) {
+    std::vector<GlitchLine*> alive;
+    alive.reserve(lines.size());
+
+    for (auto *line : lines) {
+        if (!line->isFinished()) {
             line->tick();
-            for(int i = 0; i < line->getThickness();i++) {
-                u8g2.drawLine(0, line->getPosition() + i , 63, line->getPosition() + i);
+
+            if ((line->getTick() ^ 0x5A) % 5 == 0) {
+                alive.push_back(line);
+                continue;
             }
+
+            for (int t = 0; t < line->getThickness(); ++t) {
+                int baseY = line->getPosition() + t;
+
+                // CLAMP TO 0..127 (not 0..63)
+                int y = baseY + (int)random(-1, 2);
+                if (y < 0) y = 0;
+                if (y >= SCR_H) y = SCR_H - 1;
+
+                int x = 0;
+                while (x < SCR_W) {                 // width is 64
+                    int seg = random(4, 16);
+                    int gap = random(2, 10);
+                    int jitterX = random(-1, 2);
+
+                    int sx = x + jitterX;
+                    if (sx < 0) sx = 0;
+                    if (sx + seg > SCR_W) seg = SCR_W - sx;
+
+                    if (seg > 0) {
+                        u8g2.drawHLine(sx, y, seg);
+
+                        if (random(0, 10) < 3) {
+                            int ty = y + ((random(0, 2) == 0) ? -1 : +1);
+                            // CLAMP TO 0..127
+                            if (ty >= 0 && ty < SCR_H) {
+                                int seg2 = seg - random(1, 4);
+                                if (seg2 > 0) u8g2.drawHLine(sx, ty, seg2);
+                            }
+                        }
+                    }
+
+                    x += seg + gap;
+                }
+
+                // noise around the line — CLAMP TO 0..127
+                int noiseN = random(2, 6);
+                while (noiseN--) {
+                    int nx = random(0, SCR_W);
+                    int ny = y + random(-2, 3);
+                    if (ny >= 0 && ny < SCR_H) {
+                        u8g2.drawPixel(nx, ny);
+                    }
+                }
+            }
+
+            alive.push_back(line);
+        } else {
+            delete line;
         }
     }
+
+    lines.swap(alive);
 }
+
+
 
 void EFDisplayClass::drawTraces() const {
     const int offset[] = {7, 88};
