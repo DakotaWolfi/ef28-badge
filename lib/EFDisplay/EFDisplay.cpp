@@ -328,15 +328,12 @@ void EFDisplayClass::bootupAnimation() {
 
     EFLed.setDragonEye(CRGB(60, 60, 120));
     delay(2000);
-
-
-
-
-
-//    for(int i = 0; i< 12; i++) {
-//        u8g2.drawStr(0, 10, "000001111100000");
-//    }
-//    u8g2.drawStr(0, 20, "111110000011111");
+/*
+    for(int i = 0; i< 12; i++) {
+        u8g2.drawStr(0, 10, "000001111100000");
+    }
+    u8g2.drawStr(0, 20, "111110000011111");
+    */
     u8g2.sendBuffer();
 }
 
