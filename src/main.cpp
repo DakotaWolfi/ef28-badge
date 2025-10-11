@@ -26,6 +26,7 @@
 
 //#define HasDisplay
 
+#include <Config.h>
 
 #include <Arduino.h>
 #include <ArduinoOTA.h>

@@ -67,6 +67,12 @@ float battery_voltage = 0;
 static constexpr int SCR_W = 64;
 static constexpr int SCR_H = 128;
 
+// ensure font is set consistently
+static constexpr uint8_t HUD_LINE_H = 8;   // 5x8 font height
+static constexpr uint8_t HUD_Y0     = 30;  // first baseline y
+static constexpr uint8_t HUD_MARGIN = 4;   // space below last HUD line
+
+
 
 std::vector<GlitchLine*> lines = {};
 
@@ -86,30 +92,49 @@ void EFDisplayClass::init() {
 
 void EFDisplayClass::loop() {
     u8g2.clearBuffer();
-    audioTick();         // <— optional now; enable when you want
+    //audioTick();         // <— optional now; enable when you want
     animationTick();
 
     //EFLed.setDragonEye(CRGB(60, 60, 100));
     //EFLed.setDragonMuzzle(CRGB(40, 40, 80));
 
     updatePowerInfo();
+    drawHUD();
+    if (!hudEnabled) {
+        /*
+        if(random(0, 1000) == 0) {
+            lines.insert(lines.end(), new GlitchLine());
+        }
+        */
+        // New: small steady chance + occasional bursts
+        if (random(0, 180) == 0) {
+            lines.push_back(new GlitchLine());
+        }
+        // rare burst: spawn 3–6 lines at once
+        if (random(0, 1200) == 0) {
+            int n = random(3, 7);
+            while (n--) lines.push_back(new GlitchLine());
+        }
+        animateGlitchLines();
+    }else {
+        // HUD mode: lighter background instead of glitch lines
+        // 1) draw the regular outlines if you want them visible under HUD:
+        // eyeOutline();
+        // drawTraces();
 
-    /*$
-    if(random(0, 1000) == 0) {
-        lines.insert(lines.end(), new GlitchLine());
-    }
-    */
-    // New: small steady chance + occasional bursts
-    if (random(0, 180) == 0) {
-        lines.push_back(new GlitchLine());
-    }
-    // rare burst: spawn 3–6 lines at once
-    if (random(0, 1200) == 0) {
-        int n = random(3, 7);
-        while (n--) lines.push_back(new GlitchLine());
+        // 2) draw HUD text (top)
+        drawHUD();
+
+        // 3) fill the lower part with static
+        // Compute where HUD text ends: 4 lines * 8px starting at HUD_Y0
+        uint8_t yEnd = HUD_Y0 + 4 * HUD_LINE_H + HUD_MARGIN;
+        if (yEnd < SCR_H) {
+            //drawHUDStatic(yEnd);
+            drawHUDStatic(0);
+        }
     }
 
-    animateGlitchLines();
+
 
     eyeOutline();
 
@@ -396,6 +421,81 @@ void EFDisplayClass::audioTick() {
 
     g_audio_level = lvl;
 }
+
+void EFDisplayClass::setHUDEnabled(bool on) {
+    hudEnabled = on;
+}
+
+void EFDisplayClass::setHUDLine(uint8_t idx, const String& text) {
+    if (idx < 4) hudLines[idx] = text;
+}
+
+void EFDisplayClass::clearHUD() {
+    for (auto &l : hudLines) l = "";
+}
+
+String EFDisplayClass::truncateToWidth(const String& s, uint8_t maxW) {
+    // ensure font is selected for width calc
+    u8g2.setFont(u8g2_font_5x8_tr);
+    if (u8g2.getStrWidth(s.c_str()) <= maxW) return s;
+
+    String out = s;
+    // leave room for ellipsis "…"
+    const char* ell = "\xE2\x80\xA6"; // UTF-8 ellipsis
+    while (out.length() > 0 && u8g2.getStrWidth((out + ell).c_str()) > maxW) {
+        out.remove(out.length()-1);
+    }
+    return out + ell;
+}
+
+void EFDisplayClass::drawHUD() const {
+    if (!hudEnabled) return;
+
+    u8g2.setFont(u8g2_font_5x8_tr);
+    uint8_t y = HUD_Y0;
+
+    for (int i = 0; i < 4; ++i) {
+        if (hudLines[i].length() > 0) {
+            String line = truncateToWidth(hudLines[i], SCR_W);
+            u8g2.drawStr(0, y, line.c_str());
+        }
+        y += HUD_LINE_H;
+    }
+}
+
+void EFDisplayClass::drawHUDStatic(uint8_t yStart) const {
+    if (yStart >= SCR_H) return;
+    // Lightweight “TV static”: a handful of random pixels + short dashes per frame.
+    // Tuned to be cheap enough to run every loop.
+
+    // Seed varies per frame, but we just use Arduino random()
+    // DOTS: ~150 sparse pixels
+    const int DOTS = 150;
+    for (int i = 0; i < DOTS; ++i) {
+        int x = random(0, SCR_W);
+        int y = random(yStart, SCR_H);
+        u8g2.drawPixel(x, y);
+    }
+
+    // Dashes: a few short horizontal jitter lines
+    const int DASHES = 10;
+    for (int i = 0; i < DASHES; ++i) {
+        int y  = random(yStart, SCR_H);
+        int x  = random(0, SCR_W - 2);
+        int w  = random(2, 8);
+        u8g2.drawHLine(x, y, w);
+        // occasional echo line one pixel up/down
+        if (random(0, 4) == 0) {
+            int y2 = y + (random(0, 2) ? 1 : -1);
+            if (y2 >= (int)yStart && y2 < SCR_H) {
+                int w2 = max(1, (int)(w - random(1, 3)));
+
+                u8g2.drawHLine(x, y2, w2);
+            }
+        }
+    }
+}
+
 
 #if !defined(NO_GLOBAL_INSTANCES) && !defined(NO_GLOBAL_EFDISPLAY)
 EFDisplayClass EFDisplay;

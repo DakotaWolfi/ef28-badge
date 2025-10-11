@@ -5,12 +5,15 @@
 // This file implements the methods declared for `struct GameFoxHuntBle` in FSMState.h.
 // No BLE headers are pulled into FSMState.h to keep the core header clean.
 
+#include <Config.h>
 #include <EFLed.h>
 #include <EFBoard.h>
 #include <EFLogging.h>
 #include "FSMState.h"
 #include <EFTouch.h>
-//#include <EFDisplay.h>
+#ifdef HasDisplay
+    #include <EFDisplay.h>
+#endif
 
 
 #include <WiFi.h>
@@ -44,6 +47,19 @@ static volatile uint32_t s_seenCallbacks = 0; // already there (keeps incrementi
 static volatile uint32_t s_scanCycles    = 0; // counts 5s scan windows completed
 static uint32_t s_lastHudMs  = 0;             // last time we refreshed HUD
 static uint32_t s_lastCbMs   = 0;             // last time a callback fired
+
+// --- modes (menus) ---
+enum ViewMode : uint8_t { VIEW_TRACK = 0, VIEW_COUNT = 1 };
+static ViewMode s_view = VIEW_TRACK;
+
+// quick colors
+//static inline CRGB C_BLUE()  { return CRGB(0, 0, 180); }
+static inline CRGB C_TEAL(uint8_t v=80) { return CRGB(0, v, 100); }
+static inline CRGB C_GREEN(uint8_t v=180){ return CRGB(0, v, 0); }
+
+// blink bookkeeping
+static uint32_t s_lastMuzzleBlinkMs = 0;
+
 
 // ---------------- internal model ----------------
 struct FHPeer {
@@ -122,16 +138,57 @@ static uint8_t rssiToPercent(int rssi) {
   float pct = (rssi - EF_BLEFH_RSSI_MIN) * (100.0f / (EF_BLEFH_RSSI_MAX - EF_BLEFH_RSSI_MIN));
   return (uint8_t)(pct + 0.5f);
 }
+
 static void showPercent(uint8_t pct) {
   uint8_t N = (pct * EFLED_EFBAR_NUM) / 100;
   for (uint8_t i=0;i<EFLED_EFBAR_NUM;i++)
-    EFLed.setEFBar(i, (i < N) ? CRGB(0,50,100) : CRGB(25,0,0));
+    EFLed.setEFBar(i, (i < N) ? CRGB(0,100,0) : CRGB(25,0,0));
 }
+
 static void showCount(uint8_t count) {
   uint8_t N = (count > EFLED_EFBAR_NUM) ? EFLED_EFBAR_NUM : count;
   for (uint8_t i=0;i<EFLED_EFBAR_NUM;i++)
     EFLed.setEFBar(i, (i < N) ? CRGB(0,50,100) : CRGB(25,0,0));
 }
+
+// show state via dragon LEDs (no display needed)
+static void applyStateIndicators(bool targetFresh) {
+  // clear first
+  EFLed.setDragonMuzzle(CRGB::Black);
+  EFLed.setDragonCheek(CRGB::Black);
+  EFLed.setDragonEarTop(CRGB::Black);
+  EFLed.setDragonEarBottom(CRGB::Black);
+
+  if (s_lockActive) {
+    // LOCKED: eye green (bright if fresh), nose solid teal
+    EFLed.setDragonEye(targetFresh ? C_GREEN(180) : C_GREEN(60));
+    EFLed.setDragonNose(C_TEAL(80));
+  } else if (s_view == VIEW_TRACK) {
+    // TRACK: eye blue, nose pulse to show scanning
+    EFLed.setDragonEye(CRGB(0, 0, 180));
+    uint8_t v = 40 + (uint8_t)((sinf(millis()/600.0f)*0.5f+0.5f)*60);
+    EFLed.setDragonNose(C_TEAL(v));
+  } else { // VIEW_COUNT
+    // COUNT: ears on as a “mode flag”, nose slow pulse
+    EFLed.setDragonEarTop(CRGB(0, 0, 180));
+    EFLed.setDragonEarBottom(CRGB(200,0,0));
+    uint8_t v = 30 + (uint8_t)((sinf(millis()/900.0f)*0.5f+0.5f)*30);
+    EFLed.setDragonNose(C_TEAL(v));
+    EFLed.setDragonEye(CRGB::Black);
+  }
+
+  // auto-clear muzzle blink after ~120 ms
+  if (millis() - s_lastMuzzleBlinkMs > 120) {
+    EFLed.setDragonMuzzle(CRGB::Black);
+  }
+}
+
+// call this when a (re)lock happens
+static void blinkMuzzle() {
+  s_lastMuzzleBlinkMs = millis();
+  EFLed.setDragonMuzzle(CRGB::White);
+}
+
 
 // Adapter so we don’t need BLE callbacks in the header
 class FHScanCb : public BLEAdvertisedDeviceCallbacks {
@@ -296,7 +353,31 @@ void GameFoxHuntBle::run() {
     hud += " Cb/s:" + String(cb);
 
     // on-screen (uses your new helper)
-    //EFDisplay.printString(hud);
+    #ifdef HasDisplay
+      EFDisplay.setHUDEnabled(true);
+
+      String line0 = s_lockActive ? "LOCKED" : "TRACK";
+      line0 += String(" P:") + String(freshCnt);
+
+      String line1;
+      if (idxStrong >= 0) line1 = "RSSI:" + String(s_peers[idxStrong].rssi);
+      else                line1 = "RSSI:--";
+
+      String line2;
+      if (s_lockActive) {
+        char buf[8]; snprintf(buf, sizeof(buf), "%04X", (uint16_t)(s_lockedBadgeId & 0xFFFF));
+        line2 = "TGT:" + String(buf);
+      } else {
+        line2 = "TGT:--";
+      }
+
+      String line3 = "Cb/s:" + String(cb);
+
+      EFDisplay.setHUDLine(0, line0);
+      EFDisplay.setHUDLine(1, line1);
+      EFDisplay.setHUDLine(2, line2);
+      EFDisplay.setHUDLine(3, line3);
+    #endif
 
     // serial snapshot
     LOGF_INFO("[FoxHunt] peers=%d strongest=%d rssi=%d locked=%s cbps=%lu scans=%lu\n",
@@ -313,56 +394,109 @@ void GameFoxHuntBle::run() {
   // (optional) tiny heartbeat on the nose so you see run() ticking
   EFLed.setDragonNose(CRGB(0,50,50));
 
-  // --- existing LED mapping ---
+  // --- existing LED mapping (mode-aware) ---
+  bool targetFresh = false;
+  int idx = -1;
+
   if (s_lockActive) {
-    int idx = findById(s_lockedBadgeId);
-    if (idx >= 0 && fresh(s_peers[idx])) showPercent(rssiToPercent(s_peers[idx].rssi));
-    else                                 showPercent(0);
-  } else {
-    int idx = strongestFresh();
-    if (idx >= 0) showPercent(rssiToPercent(s_peers[idx].rssi));
-    else          showCount((uint8_t)freshCount());
+    int j = findById(s_lockedBadgeId);
+    targetFresh = (j >= 0 && fresh(s_peers[j]));
+    if (targetFresh) idx = j;
   }
 
+  if (!s_lockActive) {
+    if (s_view == VIEW_TRACK) {
+      // default: show strongest proximity (what you wanted)
+      int s = strongestFresh();
+      if (s >= 0) showPercent(rssiToPercent(s_peers[s].rssi));
+      else        showCount((uint8_t)freshCount());
+    } else { // VIEW_COUNT
+      showCount((uint8_t)freshCount());
+    }
+  } else {
+    // LOCKED: always show locked proximity (or 0 if stale)
+    if (idx >= 0) showPercent(rssiToPercent(s_peers[idx].rssi));
+    else          showPercent(0);
+  }
+
+// State indicators on dragon LEDs
+applyStateIndicators(targetFresh);
+
+
   // keep your display animations alive
-  //EFDisplay.loop();
+  #ifdef HasDisplay
+    EFDisplay.loop();
+  #endif
 
   this->tick++;
 }
 
 // touch handlers
-std::unique_ptr<FSMState> GameFoxHuntBle::touchEventFingerprintShortpress() {
+
+// Quick tap = lock next target (cycle & lock)
+std::unique_ptr<FSMState> GameFoxHuntBle::touchEventFingerprintRelease() {
   int n = fillSortedByRssi(s_sortedIdx, EF_BLEFH_MAX_PEERS);
   if (n > 0) {
     s_cursor = (s_cursor + 1) % n;
     s_lockedBadgeId = s_peers[s_sortedIdx[s_cursor]].id;
     s_lockActive = true;
-    LOGF_INFO("[FoxHunt] Locked to 0x%08lX\r\n", (unsigned long)s_lockedBadgeId);
+    s_view = VIEW_TRACK;   // show proximity immediately
+    LOGF_INFO("[FoxHunt] Locked 0x%08lX\r\n", (unsigned long)s_lockedBadgeId);
+  } else {
+    LOG_INFO("[FoxHunt] No peers to lock\r\n");
   }
   return nullptr;
 }
+
+// Shortpress: unlocking lock track strongest again (keeps UX clean)
+std::unique_ptr<FSMState> GameFoxHuntBle::touchEventFingerprintShortpress() {
+  s_lockActive = false;
+  LOG_INFO("[FoxHunt] Unlocked");
+  return nullptr;
+}
+
+// Hold = exit to main menu
 std::unique_ptr<FSMState> GameFoxHuntBle::touchEventFingerprintLongpress() {
   s_lockActive = false;
   s_cursor = -1;
+  #ifdef HasDisplay
+    EFDisplay.loop();
+    EFDisplay.setHUDEnabled(false);
+    EFDisplay.setHUDLine(0, "");
+    EFDisplay.setHUDLine(1, "");
+    EFDisplay.setHUDLine(2, "");
+    EFDisplay.setHUDLine(3, "");
+  #endif
   return std::make_unique<MenuMain>();
 }
-std::unique_ptr<FSMState> GameFoxHuntBle::touchEventNoseShortpress() {
-  int idx = strongestFresh();
-  if (idx >= 0) {
-    s_lockedBadgeId = s_peers[idx].id;
-    s_lockActive = true;
-    LOGF_INFO("[FoxHunt] Quick-lock 0x%08lX\r\n", (unsigned long)s_lockedBadgeId);
-  }
+
+// -------- Nose --------
+
+// Quick tap = toggle view (TRACK <-> COUNT)
+std::unique_ptr<FSMState> GameFoxHuntBle::touchEventNoseRelease() {
+  s_view = (s_view == VIEW_TRACK) ? VIEW_COUNT : VIEW_TRACK;
+  LOGF_INFO("[FoxHunt] View -> %s\r\n", (s_view == VIEW_TRACK) ? "TRACK" : "COUNT");
   return nullptr;
 }
+
+// Shortpress: treat al long press
+std::unique_ptr<FSMState> GameFoxHuntBle::touchEventNoseShortpress() {
+  return this->touchEventNoseLongpress();
+}
+
 std::unique_ptr<FSMState> GameFoxHuntBle::touchEventNoseLongpress() {
+// Hold = unlock (stay in current view)
   s_lockActive = false;
   s_cursor = -1;
   LOG_INFO("[FoxHunt] Unlock\r\n");
   return nullptr;
 }
+// -------- All --------
+
+// Hold both = toggle lock
 std::unique_ptr<FSMState> GameFoxHuntBle::touchEventAllLongpress() {
   s_lockActive = !s_lockActive;
+  if (!s_lockActive) s_lockedBadgeId = 0;
   LOGF_INFO("[FoxHunt] Toggle lock -> %d\r\n", (int)s_lockActive);
   return nullptr;
 }

@@ -56,11 +56,25 @@ class EFDisplayClass {
     void printString(const String& text);                                  // clears + prints at (0, baseline)
     void printStringAt(const String& text, int x, int y, bool clear=true); // choose position; optional clear
 
+    // ---------- NEW: simple HUD ----------
+    void setHUDEnabled(bool on);
+    void setHUDLine(uint8_t idx, const String& text); // idx: 0..3
+    void clearHUD();
 
-
-// --- Audio reactive additions ---
+    // --- Audio reactive additions ---
     void audioInit();
     void audioTick();
+
+    private:
+    // HUD state
+    bool   hudEnabled = false;
+    String hudLines[4]; // 4 short lines max
+
+    void   drawHUD() const;
+    static String truncateToWidth(const String& s, uint8_t maxW);
+
+    // ✅ NEW: light static background when HUD is on
+    void   drawHUDStatic(uint8_t yStart) const;
 };
 
 #if !defined(NO_GLOBAL_INSTANCES) && !defined(NO_GLOBAL_EFDISPLAY)

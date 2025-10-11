@@ -349,9 +349,11 @@ struct GameFoxHuntBle : public FSMState {
 
     // Touch routing (same signature style as your other states)
     virtual std::unique_ptr<FSMState> touchEventFingerprintShortpress() override;
-    virtual std::unique_ptr<FSMState> touchEventFingerprintLongpress() override;
-    virtual std::unique_ptr<FSMState> touchEventNoseShortpress() override;
+	virtual std::unique_ptr<FSMState> touchEventFingerprintLongpress() override;
+	virtual std::unique_ptr<FSMState> touchEventFingerprintRelease() override;
+	virtual std::unique_ptr<FSMState> touchEventNoseShortpress() override;
     virtual std::unique_ptr<FSMState> touchEventNoseLongpress() override;
+	virtual std::unique_ptr<FSMState> touchEventNoseRelease() override;
     virtual std::unique_ptr<FSMState> touchEventAllLongpress() override;
 };
 
