@@ -134,10 +134,7 @@ void EFDisplayClass::loop() {
         }
     }
 
-
-
     eyeOutline();
-
     drawTraces();
 
     u8g2.sendBuffer();
@@ -226,8 +223,6 @@ void EFDisplayClass::animateGlitchLines() const {
 
     lines.swap(alive);
 }
-
-
 
 void EFDisplayClass::drawTraces() const {
     const int offset[] = {7, 88};

@@ -47,7 +47,7 @@ class EFPrideFlags {
         const static CRGB Genderqueer[EFLED_EFBAR_NUM];
         const static CRGB Nonbinary[EFLED_EFBAR_NUM];
         const static CRGB Intersex[EFLED_EFBAR_NUM];
-
+        const static CRGB Wylieville[EFLED_EFBAR_NUM];
 };
 
 #endif /* EFPRIDEFLAGS_H_ */

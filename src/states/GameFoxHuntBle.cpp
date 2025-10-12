@@ -364,7 +364,7 @@ void GameFoxHuntBle::run() {
       else                line1 = "RSSI:--";
 
       String line2;
-      if (s_lockActive) {
+      if (s_lockActive) {//tracking locked on specifig tag
         char buf[8]; snprintf(buf, sizeof(buf), "%04X", (uint16_t)(s_lockedBadgeId & 0xFFFF));
         line2 = "TGT:" + String(buf);
       } else {
