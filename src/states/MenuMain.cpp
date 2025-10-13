@@ -23,17 +23,21 @@
 /**
  * @author Honigeintopf
  */
-
+#include <Config.h>
 #include <EFLed.h>
 #include <EFLogging.h>
 #include <EFBoard.h>
 
 #include "FSMState.h"
 
+#ifdef HasDisplay
+    #include <EFDisplay.h>
+#endif
+
 /**
  * @brief Number of registered menu items
  */
-#define MENUMAIN_NUM_MENU_ITEMS 9
+#define MENUMAIN_NUM_MENU_ITEMS 10
 
 CRGB menuColors[11] = {
     CRGB(40,10,10),
@@ -59,10 +63,13 @@ const unsigned int MenuMain::getTickRateMs() {
 void MenuMain::entry() {
     EFLed.clear();
     EFLed.setDragonCheek(CRGB::Green);
+    #ifdef HasDisplay
+        String menu = "PrideFlag\nRainbow\nMatrix\nSnake\nHeartbeat\nNA-OTAUpdate\nPerlin\nHuemesh\nVUMeter\nFoxHunt";
+        EFDisplay.DisplayMenu(menu,true);
+    #endif
     EFLed.setEFBarCursor(this->globals->menuMainPointerIdx, CRGB::Silver, CRGB::Black);
     this->tick = 0;
 }
-
 void MenuMain::run() {
     CRGB cursorColor = tick % 6 < 2 ? CRGB::Silver : CRGB::DarkBlue;
     EFLed.setEFBarCursor(this->globals->menuMainPointerIdx, cursorColor, menuColors[this->globals->menuMainPointerIdx]);
@@ -71,6 +78,9 @@ void MenuMain::run() {
 }
 
 void MenuMain::exit() {
+    #ifdef HasDisplay
+        EFDisplay.DisplayMenu("",false);
+    #endif
     EFLed.clear();
 }
 
@@ -84,15 +94,17 @@ std::unique_ptr<FSMState> MenuMain::touchEventFingerprintShortpress() {
     LOGF_DEBUG("(MenuMain) menuMainPointerIdx = %d\r\n", this->globals->menuMainPointerIdx);
     switch (this->globals->menuMainPointerIdx) {
         // NOTE: Increase MENUMAIN_NUM_MENU_ITEMS define at the top of this file
+        // NOTE: if you have a display dont forget to add the names of the menu entrys in the entry funktion
         case 0: return std::make_unique<DisplayPrideFlag>();
         case 1: return std::make_unique<AnimateRainbow>();
         case 2: return std::make_unique<AnimateMatrix>();
         case 3: return std::make_unique<AnimateSnake>();
         case 4: return std::make_unique<AnimateHeartbeat>();
 //      case 5: return std::make_unique<OTAUpdate>(); // OTA Update not in production firmware
-		case 6: return std::make_unique<GameHuemesh>(); //Game :3
-		case 7: return std::make_unique<VUMeter>(); //VUMeter :3
-        case 8: return std::make_unique<GameFoxHuntBle>(); //Game BLE FoxHunt :3
+        case 6: return std::make_unique<AnimatePerlin>();
+		case 7: return std::make_unique<GameHuemesh>(); //Game :3
+		case 8: return std::make_unique<VUMeter>(); //VUMeter :3
+        case 9: return std::make_unique<GameFoxHuntBle>(); //Game BLE FoxHunt :3
         default: return nullptr;
     }
 }
@@ -145,22 +157,13 @@ std::unique_ptr<FSMState> MenuMain::touchEventNoseLongpress() {
     return nullptr;
 }
 
-std::unique_ptr<FSMState> MenuMain::touchEventNoseShortpress() {//show Battery Precent  new funktion to do currently more of an place holder
+std::unique_ptr<FSMState> MenuMain::touchEventNoseShortpress() {//if display is configures show oled boot anim
     EFLed.clear();
     EFLed.setDragonEye(CRGB(0,25,100));
-    //EFDisplay.init();
+    #ifdef HasDisplay
+        EFDisplay.init();
+    #endif
 
-    //uint8_t BatteryChargePrecent = EFBoard.getBatteryCapacityPercent();
-
-    /*
-    LOGF_DEBUG("(MenuMain) init display ",);
-    // animate to new brightness
-    CRGB data[EFLED_EFBAR_NUM];
-    fill_solid(data, EFLED_EFBAR_NUM, CRGB::Black);
-
-    fill_solid(data, map(BatteryChargePrecent, 0, 100, 0, EFLED_EFBAR_NUM), CRGB(100, 100, 100));
-    EFLed.setEFBar(data);
-*/
     delay(100);
 
     // reset view

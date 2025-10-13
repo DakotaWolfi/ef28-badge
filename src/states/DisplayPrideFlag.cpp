@@ -54,7 +54,7 @@ void DisplayPrideFlag::run() {
         if (this->globals->prideFlagModeIdx == 0) {
             // Cycle through all flags
             LOGF_DEBUG("(DisplayPrideFlag) Switched pride flag to: %d\r\n", flagidx);
-            flagidx = (flagidx + 1) % 12;
+            flagidx = (flagidx + 1) % 13;
         }
     }
 
@@ -74,6 +74,7 @@ void DisplayPrideFlag::run() {
             case 9: prideFlag = EFPrideFlags::Genderqueer; break;
             case 10: prideFlag = EFPrideFlags::Nonbinary; break;
             case 11: prideFlag = EFPrideFlags::Intersex; break;
+            case 12: prideFlag = EFPrideFlags::Wylieville; break;
         }
     } else {
         switch(this->globals->prideFlagModeIdx) {
@@ -90,12 +91,13 @@ void DisplayPrideFlag::run() {
             case 10: prideFlag = EFPrideFlags::Genderqueer; break;
             case 11: prideFlag = EFPrideFlags::Nonbinary; break;
             case 12: prideFlag = EFPrideFlags::Intersex; break;
+            case 13: prideFlag = EFPrideFlags::Wylieville; break;
             default:
                 LOG_ERROR("(DisplayPrideFlag) Invalid prideFlagModeIdx!")
                 break;
         }
     }
-    
+
     // Animate dragon: Rotate current flag to cycle through dragon head
     std::vector<CRGB> rotatedflag(prideFlag, prideFlag + EFLED_EFBAR_NUM);
     std::rotate(rotatedflag.begin(), rotatedflag.begin() + (this->tick % (EFLED_EFBAR_NUM*20)) / 20, rotatedflag.end());
@@ -140,7 +142,7 @@ std::unique_ptr<FSMState> DisplayPrideFlag::touchEventFingerprintRelease() {
         return nullptr;
     }
 
-    this->globals->prideFlagModeIdx = (this->globals->prideFlagModeIdx + 1) % 13;
+    this->globals->prideFlagModeIdx = (this->globals->prideFlagModeIdx + 1) % 14;
     this->is_globals_dirty = true;
     this->tick = 0;
 

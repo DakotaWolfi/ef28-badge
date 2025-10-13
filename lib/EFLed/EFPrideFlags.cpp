@@ -195,15 +195,16 @@ const CRGB EFPrideFlags::Intersex[] = {
 };
 
 const CRGB EFPrideFlags::Wylieville[] = {
-    0xFFFFFF,
-    0x67328A,
-    0xFFFFFF,
-    0x67328A,
-    0xFFFFFF,
-    0x67328A,
-    0xFFFFFF,
-    0x67328A,
-    0xFFFFFF,
-    0x67328A,
+
+    0x770099,
+    0x770099,
+    0x777777,
+    0x777777,
+    0x770099,
+    0x770099,
+    0x777777,
+    0x777777,
+    0x770099,
+    0x770099,
     0x000000,
 };

@@ -32,6 +32,9 @@
 #include <U8g2lib.h>
 #include <GlitchLine.h>
 
+#include <string>
+#include <sstream>
+
 #include "EFDisplay.h"
 
 #include <math.h>   // for fabsf
@@ -72,6 +75,7 @@ static constexpr uint8_t HUD_LINE_H = 8;   // 5x8 font height
 static constexpr uint8_t HUD_Y0     = 30;  // first baseline y
 static constexpr uint8_t HUD_MARGIN = 4;   // space below last HUD line
 
+bool inMenu = false;
 
 
 std::vector<GlitchLine*> lines = {};
@@ -87,20 +91,19 @@ void EFDisplayClass::init() {
     LOG_INFO("Display setup!");
 
     audioInit();         // <— optional now; enable when you want
-    //bootupAnimation();
+    bootupAnimation();
 }
 
 void EFDisplayClass::loop() {
+    if(inMenu)return;//show the display Loop only when not in the main menu
     u8g2.clearBuffer();
-    //audioTick();         // <— optional now; enable when you want
-    animationTick();
-
+    updatePowerInfo();
     //EFLed.setDragonEye(CRGB(60, 60, 100));
     //EFLed.setDragonMuzzle(CRGB(40, 40, 80));
 
-    updatePowerInfo();
-    drawHUD();
     if (!hudEnabled) {
+        //audioTick();         // <— optional now; enable when you want
+        animationTick();
         /*
         if(random(0, 1000) == 0) {
             lines.insert(lines.end(), new GlitchLine());
@@ -118,27 +121,14 @@ void EFDisplayClass::loop() {
         animateGlitchLines();
     }else {
         // HUD mode: lighter background instead of glitch lines
-        // 1) draw the regular outlines if you want them visible under HUD:
-        // eyeOutline();
-        // drawTraces();
-
-        // 2) draw HUD text (top)
         drawHUD();
-
-        // 3) fill the lower part with static
-        // Compute where HUD text ends: 4 lines * 8px starting at HUD_Y0
-        uint8_t yEnd = HUD_Y0 + 4 * HUD_LINE_H + HUD_MARGIN;
-        if (yEnd < SCR_H) {
-            //drawHUDStatic(yEnd);
-            drawHUDStatic(0);
-        }
+        drawHUDStatic(0);
     }
-
     eyeOutline();
     drawTraces();
-
     u8g2.sendBuffer();
 }
+
 
 void EFDisplayClass::updatePowerInfo() const {
     battery_update_counter++;
@@ -285,6 +275,29 @@ void EFDisplayClass::eyeOutline() const {
     }
 }
 
+ void EFDisplayClass::DisplayMenu(const String& text,bool showMenu){
+    if(showMenu){
+        inMenu = true;
+        u8g2.clearBuffer(); //clear screen
+        updatePowerInfo();  //print power status
+        drawMultiline(0, 30, text.c_str());
+        u8g2.sendBuffer();
+    }else{
+        inMenu = false;
+    }
+ }
+
+ void EFDisplayClass::drawMultiline(int x, int y, const char *text) {
+  int lineHeight = u8g2.getMaxCharHeight() + 1;
+  std::string s(text);
+  std::stringstream ss(s);
+  std::string line;
+  int i = 0;
+  while (std::getline(ss, line, '\n')) {
+    u8g2.drawStr(x, y + i * lineHeight, line.c_str());
+    i++;
+  }
+}
 // Convenience: print at default spot (x=0, y=12) and clear first
 void EFDisplayClass::printString(const String& text) {
     printStringAt(text, 0, 12, true);
@@ -296,12 +309,8 @@ void EFDisplayClass::printStringAt(const String& text, int x, int y, bool clear)
         u8g2.clearBuffer();
     }
 
-    // Use whatever font you already prefer
-    u8g2.setFont(u8g2_font_5x8_tr);
-
     // NOTE: u8g2 expects a baseline y, not top-left; 12 is a good baseline for 5x8 font
     u8g2.drawStr(x, y, text.c_str());
-
     u8g2.sendBuffer();
 }
 

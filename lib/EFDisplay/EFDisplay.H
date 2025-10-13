@@ -51,11 +51,11 @@ class EFDisplayClass {
     void updatePowerInfo() const;
 
     void bootupAnimation();
-
+    void DisplayMenu(const String& text,bool showMenu);
     // ✅ NEW: simple text printing helpers
     void printString(const String& text);                                  // clears + prints at (0, baseline)
     void printStringAt(const String& text, int x, int y, bool clear=true); // choose position; optional clear
-
+    void drawMultiline(int x, int y, const char *text);//helper automatic line wrap 
     // ---------- NEW: simple HUD ----------
     void setHUDEnabled(bool on);
     void setHUDLine(uint8_t idx, const String& text); // idx: 0..3

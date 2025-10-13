@@ -80,9 +80,6 @@ static int      s_cursor = -1;
 static FHPeer   s_peers[EF_BLEFH_MAX_PEERS];
 static int      s_sortedIdx[EF_BLEFH_MAX_PEERS];
 
-bool GameFoxHuntBle::shouldBeRemembered() {
-	return true;
-}
 
 // ---------------- helpers ----------------
 static bool fresh(const FHPeer& p) {
@@ -282,6 +279,7 @@ static void stopBLE() {
 
 // ---------------- GameFoxHuntBle method implementations ----------------
 const char* GameFoxHuntBle::getName() { return "GameFoxHuntBle"; }
+
 bool GameFoxHuntBle::shouldBeRemembered() { return true; }
 
 void GameFoxHuntBle::entry() {
