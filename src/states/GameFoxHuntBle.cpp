@@ -80,6 +80,9 @@ static int      s_cursor = -1;
 static FHPeer   s_peers[EF_BLEFH_MAX_PEERS];
 static int      s_sortedIdx[EF_BLEFH_MAX_PEERS];
 
+bool GameHuemesh::shouldBeRemembered() {
+	return true;
+}
 
 // ---------------- helpers ----------------
 static bool fresh(const FHPeer& p) {
