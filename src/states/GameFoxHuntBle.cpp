@@ -52,15 +52,11 @@ static uint32_t s_lastCbMs   = 0;             // last time a callback fired
 enum ViewMode : uint8_t { VIEW_TRACK = 0, VIEW_COUNT = 1 };
 static ViewMode s_view = VIEW_TRACK;
 
-// quick colors
-//static inline CRGB C_BLUE()  { return CRGB(0, 0, 180); }
-static inline CRGB C_TEAL(uint8_t v=80) { return CRGB(0, v, 100); }
-static inline CRGB C_GREEN(uint8_t v=180){ return CRGB(0, v, 0); }
-
 // blink bookkeeping
 static uint32_t s_lastMuzzleBlinkMs = 0;
+static uint32_t s_hornBlinkMs = 0;
+static bool     s_hornBlinkOn = false;
 static std::string s_devName;  // our own GAP name for logs
-
 
 // ---------------- internal model ----------------
 struct FHPeer {
@@ -156,27 +152,27 @@ static void showCount(uint8_t count) {
 // show state via dragon LEDs (no display needed)
 static void applyStateIndicators(bool targetFresh) {
   // clear first
-  EFLed.setDragonMuzzle(CRGB::Black);
-  EFLed.setDragonCheek(CRGB::Black);
-  EFLed.setDragonEarTop(CRGB::Black);
-  EFLed.setDragonEarBottom(CRGB::Black);
+  //EFLed.setDragonMuzzle(CRGB::Black);
+  //EFLed.setDragonCheek(CRGB::Black);
+  //EFLed.setDragonEarTop(CRGB::Black);
+  //EFLed.setDragonEarBottom(CRGB::Black);
 
+  EFLed.setDragonEye(CRGB(0, 0, 180));
   if (s_lockActive) {
     // LOCKED: eye green (bright if fresh), nose solid teal
-    EFLed.setDragonEye(targetFresh ? C_GREEN(180) : C_GREEN(60));
-    EFLed.setDragonNose(C_TEAL(80));
-  } else if (s_view == VIEW_TRACK) {
+    EFLed.setDragonEye(targetFresh ? CRGB(0, 180, 0) : CRGB(0, 60, 0));
+    EFLed.setDragonNose(CRGB(0, 80, 100));
+  }else if (s_view == VIEW_TRACK) {
     // TRACK: eye blue, nose pulse to show scanning
-    EFLed.setDragonEye(CRGB(0, 0, 180));
     uint8_t v = 40 + (uint8_t)((sinf(millis()/600.0f)*0.5f+0.5f)*60);
-    EFLed.setDragonNose(C_TEAL(v));
+    EFLed.setDragonNose(CRGB(0, v, 100));
+    EFLed.setDragonCheek(CRGB(0, 0, 180));
   } else { // VIEW_COUNT
     // COUNT: ears on as a “mode flag”, nose slow pulse
-    EFLed.setDragonEarTop(CRGB(0, 0, 180));
-    EFLed.setDragonEarBottom(CRGB(200,0,0));
+    //EFLed.setDragonEarBottom(CRGB(200,0,0));
     uint8_t v = 30 + (uint8_t)((sinf(millis()/900.0f)*0.5f+0.5f)*30);
-    EFLed.setDragonNose(C_TEAL(v));
-    EFLed.setDragonEye(CRGB::Black);
+    EFLed.setDragonNose(CRGB(0, v, 100));
+    EFLed.setDragonCheek(CRGB(0, 180, 0));
   }
 
   // auto-clear muzzle blink after ~120 ms
@@ -184,13 +180,6 @@ static void applyStateIndicators(bool targetFresh) {
     EFLed.setDragonMuzzle(CRGB::Black);
   }
 }
-
-// call this when a (re)lock happens
-static void blinkMuzzle() {
-  s_lastMuzzleBlinkMs = millis();
-  EFLed.setDragonMuzzle(CRGB::White);
-}
-
 
 // Adapter so we don’t need BLE callbacks in the header
 class FHScanCb : public BLEAdvertisedDeviceCallbacks {
@@ -256,14 +245,13 @@ static void bleScanTask(void*){
   //scan->setAdvertisedDeviceCallbacks(&s_scanCb);
   scan->setAdvertisedDeviceCallbacks(&s_scanCb, /*wantDuplicates=*/true);
 
-
   // loop short blocking scans so we can stop promptly
   while (s_scanTaskRun) {
-  scan->start(1 /*seconds*/, false /*blocking*/); // was 5
-  s_scanCycles++;
-  scan->clearResults();
-  vTaskDelay(pdMS_TO_TICKS(5));
-}
+    scan->start(1 /*seconds*/, false /*blocking*/); // was 5
+    s_scanCycles++;
+    scan->clearResults();
+    vTaskDelay(pdMS_TO_TICKS(5));
+  }
   vTaskDelete(nullptr);
 }
 
@@ -464,6 +452,34 @@ void GameFoxHuntBle::run() {
 
   // dragon face indicators
   applyStateIndicators(targetFresh);
+
+  // --- Horn blink: flash ears if we see at least one fresh peer ---
+{
+  // strongest index (for brightness); if none, returns -1
+  int s = strongestFresh();
+
+  if (s >= 0) {
+    // toggle ~3 times/sec
+    if (millis() - s_hornBlinkMs >= 330) {
+      s_hornBlinkMs = millis();
+      s_hornBlinkOn = !s_hornBlinkOn;
+    }
+
+    // brightness scales with proximity (but always visible even if weak)
+    uint8_t v = 40; // base brightness for very weak signals
+    v += (uint8_t)((rssiToPercent(s_peers[s].rssi) * 140) / 100); // up to ~180
+
+    CRGB c = s_hornBlinkOn ? CRGB(0, v, 100) : CRGB(0,0,0);
+    EFLed.setDragonEarTop(c);
+    c = !s_hornBlinkOn ? CRGB(0, v, 100) : CRGB(0,0,0);
+    EFLed.setDragonEarBottom(c);
+  } else {
+    // no peers: leave ears as whatever applyStateIndicators() set (usually off)
+    // If you prefer to force them off, uncomment:
+    EFLed.setDragonEarTop(CRGB(55,0,0));
+    EFLed.setDragonEarBottom(CRGB(55,0,0));
+  }
+}
 
   #ifdef HasDisplay
     EFDisplay.loop();
