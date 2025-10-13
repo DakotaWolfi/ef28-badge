@@ -23,7 +23,7 @@
 /**
  * @author Honigeintopf
  */
-#include <Config.h>
+#include <EFConfig.h>
 #include <EFLed.h>
 #include <EFLogging.h>
 #include <EFBoard.h>

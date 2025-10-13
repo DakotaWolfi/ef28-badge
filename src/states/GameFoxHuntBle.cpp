@@ -5,7 +5,7 @@
 // This file implements the methods declared for `struct GameFoxHuntBle` in FSMState.h.
 // No BLE headers are pulled into FSMState.h to keep the core header clean.
 
-#include <Config.h>
+#include <EFConfig.h>
 #include <EFLed.h>
 #include <EFBoard.h>
 #include <EFLogging.h>
@@ -59,6 +59,7 @@ static inline CRGB C_GREEN(uint8_t v=180){ return CRGB(0, v, 0); }
 
 // blink bookkeeping
 static uint32_t s_lastMuzzleBlinkMs = 0;
+static std::string s_devName;  // our own GAP name for logs
 
 
 // ---------------- internal model ----------------
@@ -69,6 +70,7 @@ struct FHPeer {
   int rssi = -127;       // smoothed
   int lastRaw = -127;    // last raw
   uint32_t lastSeen = 0; // millis()
+  std::string name; // store name
 };
 
 // File-scope state (keeps header simple)
@@ -214,6 +216,10 @@ class FHScanCb : public BLEAdvertisedDeviceCallbacks {
                         ? rssi
                         : (int)(EF_BLEFH_EMA_A * rssi + (1.0f - EF_BLEFH_EMA_A) * s_peers[idx].rssi);
     s_peers[idx].lastSeen = now;
+     //grab human-readable GAP name if present in scan response
+    if (dev.haveName()) {
+      s_peers[idx].name = dev.getName();
+    }
     s_seenCallbacks++;
     s_lastCbMs = millis();
   }
@@ -221,18 +227,26 @@ class FHScanCb : public BLEAdvertisedDeviceCallbacks {
 static FHScanCb s_scanCb;
 
 static void startAdvertising() {
+  // Build Manufacturer Data: [0x28,0xEF] + 4-byte ID
   std::string md;
   md.push_back((char)(EF_BLEFH_MFGID & 0xFF));
   md.push_back((char)((EF_BLEFH_MFGID >> 8) & 0xFF));
-  md.append((char*)&s_myBadgeId, 4);
+  md.append(reinterpret_cast<const char*>(&s_myBadgeId), 4);
 
   BLEAdvertising* adv = BLEDevice::getAdvertising();
+
+  // Primary advertisement payload (keep it small)
   BLEAdvertisementData ad;
   ad.setManufacturerData(md);
   adv->setAdvertisementData(ad);
-  adv->setScanResponse(false);
+
+  // Put our human-readable name into the *scan response*
+  BLEAdvertisementData sr;
+  sr.setName(s_devName.c_str());
+  adv->setScanResponseData(sr);
   adv->start();
 }
+
 static void bleScanTask(void*){
   BLEScan* scan = BLEDevice::getScan();
   // setup once
@@ -303,8 +317,16 @@ void GameFoxHuntBle::entry() {
   if (s_myBadgeId == 0) s_myBadgeId = ef_defaultBadgeIdFromMac();
   LOGF_INFO("[FoxHunt] myBadgeId=0x%08lX\r\n", (unsigned long)s_myBadgeId);
 
-  BLEDevice::init("EF28");
-  LOG_INFO("[FoxHunt] BLE inited\r\n");
+  String devName = "EF28";
+  if (strlen(EF_USER_NAME) > 0) {
+    devName += "-";
+    devName += EF_USER_NAME; // becomes e.g. "EF28-Jenna"
+  }
+  s_devName = devName.c_str();
+
+  BLEDevice::init(s_devName.c_str());
+
+  LOGF_INFO("[FoxHunt] BLE inited: devName=%s\r\n", s_devName.c_str());
 
   startAdvertising();
   LOG_INFO("[FoxHunt] advertising\r\n");
@@ -325,77 +347,98 @@ void GameFoxHuntBle::run() {
   // --- 1 Hz HUD + serial snapshot ---
   uint32_t now = millis();
   if (now - s_lastHudMs >= 1000) {
-    int idxStrong = strongestFresh();
-    int freshCnt  = freshCount();
+    const int idxStrong = strongestFresh();
+    const int freshCnt  = freshCount();
 
-    // pull & reset callback counter atomically-enough for our purposes
+    // pull & reset callback counter
     uint32_t cb = s_seenCallbacks;
     s_seenCallbacks = 0;
 
-    // build a short, dense HUD line
-    // ex: "P:3 RSSI:-58 L:ABCD Cb/s:12"
-    String hud = "P:" + String(freshCnt) + " ";
-
-    if (idxStrong >= 0) {
-      hud += "RSSI:" + String(s_peers[idxStrong].rssi);
-    } else {
-      hud += "RSSI:--";
-    }
-
+    // choose index for labeling (name): locked target if fresh, else strongest
+    int idxForLabel = -1;
     if (s_lockActive) {
-      // show last 16 bits of locked badge id to keep it short
-      uint16_t tail = (uint16_t)(s_lockedBadgeId & 0xFFFF);
-      char buf[8]; snprintf(buf, sizeof(buf), "%04X", tail);
-      hud += " L:" + String(buf);
+      int j = findById(s_lockedBadgeId);
+      if (j >= 0 && fresh(s_peers[j])) idxForLabel = j;
     } else {
-      hud += " L:--";
+      idxForLabel = idxStrong;
     }
 
-    hud += " Cb/s:" + String(cb);
-
-    // on-screen (uses your new helper)
+    // -------- Display HUD --------
     #ifdef HasDisplay
       EFDisplay.setHUDEnabled(true);
 
+      // line 0: mode + peers
       String line0 = s_lockActive ? "LOCKED" : "TRACK";
-      line0 += String(" P:") + String(freshCnt);
+      line0 += " P:" + String(freshCnt);
 
-      String line1;
-      if (idxStrong >= 0) line1 = "RSSI:" + String(s_peers[idxStrong].rssi);
-      else                line1 = "RSSI:--";
+      // line 1: strongest RSSI (like before)
+      String line1 = (idxStrong >= 0)
+        ? "RSSI:" + String(s_peers[idxStrong].rssi)
+        : "RSSI:--";
 
+      // line 2: keep your original TGT hex tail ONLY when locked
       String line2;
-      if (s_lockActive) {//tracking locked on specifig tag
-        char buf[8]; snprintf(buf, sizeof(buf), "%04X", (uint16_t)(s_lockedBadgeId & 0xFFFF));
+      uint32_t tgtId = 0;
+      if (s_lockActive) {
+        tgtId = s_lockedBadgeId;
+      } else if (idxStrong >= 0) {
+        tgtId = s_peers[idxStrong].id;
+      }
+
+      if (tgtId != 0) {
+        char buf[8];
+        snprintf(buf, sizeof(buf), "%04X", (uint16_t)(tgtId & 0xFFFF));
         line2 = "TGT:" + String(buf);
       } else {
         line2 = "TGT:--";
       }
 
+      // line 3: callback rate
       String line3 = "Cb/s:" + String(cb);
+
+      // line 5: NAME of locked target, else strongest (fallback to tail)
+      String line5 = "No Name";
+      if (idxForLabel >= 0) {
+        if (!s_peers[idxForLabel].name.empty()) {
+          // optional truncation to avoid overflow on narrow screens
+          String nm = String(s_peers[idxForLabel].name.c_str());
+          const int maxLen = 20; // tweak for your font/width
+          if (nm.length() > maxLen) nm = nm.substring(0, maxLen - 1) + "…";
+          line5 =  nm;
+        } else {
+          char buf[8]; snprintf(buf, sizeof(buf), "%04X", (uint16_t)(s_peers[idxForLabel].id & 0xFFFF));
+          line5 = "Name:(" + String(buf) + ")";
+        }
+      }
 
       EFDisplay.setHUDLine(0, line0);
       EFDisplay.setHUDLine(1, line1);
       EFDisplay.setHUDLine(2, line2);
       EFDisplay.setHUDLine(3, line3);
+      EFDisplay.setHUDLine(4, line5);
     #endif
 
-    // serial snapshot
-    LOGF_INFO("[FoxHunt] peers=%d strongest=%d rssi=%d locked=%s cbps=%lu scans=%lu\n",
+    // -------- Serial snapshot with name --------
+    const char* tgtName =
+      (idxForLabel >= 0 && !s_peers[idxForLabel].name.empty())
+        ? s_peers[idxForLabel].name.c_str() : "--";
+
+    LOGF_INFO("[FoxHunt] peers=%d strongest=%d rssi=%d locked=%s tgtName=\"%s\" cbps=%lu scans=%lu\n",
               freshCnt,
               idxStrong,
               (idxStrong >= 0 ? s_peers[idxStrong].rssi : -127),
               (s_lockActive ? "yes" : "no"),
+              tgtName,
               (unsigned long)cb,
               (unsigned long)s_scanCycles);
 
     s_lastHudMs = now;
   }
 
-  // (optional) tiny heartbeat on the nose so you see run() ticking
+  // small heartbeat so you see run() ticking
   EFLed.setDragonNose(CRGB(0,50,50));
 
-  // --- existing LED mapping (mode-aware) ---
+  // --- LED bar & indicators ---
   bool targetFresh = false;
   int idx = -1;
 
@@ -407,7 +450,6 @@ void GameFoxHuntBle::run() {
 
   if (!s_lockActive) {
     if (s_view == VIEW_TRACK) {
-      // default: show strongest proximity (what you wanted)
       int s = strongestFresh();
       if (s >= 0) showPercent(rssiToPercent(s_peers[s].rssi));
       else        showCount((uint8_t)freshCount());
@@ -415,16 +457,14 @@ void GameFoxHuntBle::run() {
       showCount((uint8_t)freshCount());
     }
   } else {
-    // LOCKED: always show locked proximity (or 0 if stale)
+    // LOCKED: show locked proximity (or 0 if stale)
     if (idx >= 0) showPercent(rssiToPercent(s_peers[idx].rssi));
     else          showPercent(0);
   }
 
-// State indicators on dragon LEDs
-applyStateIndicators(targetFresh);
+  // dragon face indicators
+  applyStateIndicators(targetFresh);
 
-
-  // keep your display animations alive
   #ifdef HasDisplay
     EFDisplay.loop();
   #endif
@@ -467,6 +507,7 @@ std::unique_ptr<FSMState> GameFoxHuntBle::touchEventFingerprintLongpress() {
     EFDisplay.setHUDLine(1, "");
     EFDisplay.setHUDLine(2, "");
     EFDisplay.setHUDLine(3, "");
+    EFDisplay.setHUDLine(4, "");
   #endif
   return std::make_unique<MenuMain>();
 }

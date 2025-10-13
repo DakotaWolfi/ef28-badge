@@ -26,7 +26,7 @@
 
 //#define HasDisplay
 
-#include <Config.h>
+#include <EFConfig.h>
 
 #include <Arduino.h>
 #include <ArduinoOTA.h>

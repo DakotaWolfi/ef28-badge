@@ -24,21 +24,22 @@
  * @author Irah / DarkRat
  */
 
-#include <vector>
+//#include <EFConfig.h>
+#include <GlitchLine.h>
 #include <EFLogging.h>
 #include <EFBoard.h>
 #include <EFLed.h>
-#include <SPI.h>
-#include <U8g2lib.h>
-#include <GlitchLine.h>
 
+#include <U8g2lib.h>
+#include <SPI.h>
+
+#include <vector>
+#include <array>
 #include <string>
 #include <sstream>
 
 #include "EFDisplay.h"
 
-#include <math.h>   // for fabsf
-#include <esp_system.h>   // for esp_random()
 
 #define OLED_CS    5   // Chip Select
 #define OLED_DC    6   // Data/Command
@@ -49,18 +50,21 @@
 // --- AUDIO / NOISE CONFIG ---
 #define AUDIO_PIN   4
 #define NOISE_PIN   12   // <- use exactly one floating pin
+
+
+#include <math.h>   // for fabsf
+#include <esp_system.h>   // for esp_random()
+
 float g_audio_level = 0.0f;
-// ---- Audio state (module-scope) ----
-// If you haven't wired audio into the animator yet, these just sit idle.
+
 static float audio_dc  = 2048.0f;   // DC estimate (midpoint for 12-bit ADC)
 static float audio_env = 0.0f;      // smoothed envelope
 // g_audio_level is already defined above by you: float g_audio_level = 0.0f;
 
-
 static uint16_t counter = 0;
-static bool glitch_anim = false;
-static int thick_line = -1;
-static int thin_line = -1;
+//static bool glitch_anim = false;
+//static int thick_line = -1;
+//static int thin_line = -1;
 int battery_update_counter = 0;
 int battery_percentage = 0;
 float battery_voltage = 0;
@@ -73,7 +77,8 @@ static constexpr int SCR_H = 128;
 // ensure font is set consistently
 static constexpr uint8_t HUD_LINE_H = 8;   // 5x8 font height
 static constexpr uint8_t HUD_Y0     = 30;  // first baseline y
-static constexpr uint8_t HUD_MARGIN = 4;   // space below last HUD line
+//static constexpr uint8_t HUD_MARGIN = 4;   // space below last HUD line
+static constexpr uint8_t HUD_LINE5_Y = 85;  // pick what clears the eye outline
 
 bool inMenu = false;
 
@@ -275,7 +280,7 @@ void EFDisplayClass::eyeOutline() const {
     }
 }
 
- void EFDisplayClass::DisplayMenu(const String& text,bool showMenu){
+void EFDisplayClass::DisplayMenu(const String& text,bool showMenu){
     if(showMenu){
         inMenu = true;
         u8g2.clearBuffer(); //clear screen
@@ -297,21 +302,6 @@ void EFDisplayClass::eyeOutline() const {
     u8g2.drawStr(x, y + i * lineHeight, line.c_str());
     i++;
   }
-}
-// Convenience: print at default spot (x=0, y=12) and clear first
-void EFDisplayClass::printString(const String& text) {
-    printStringAt(text, 0, 12, true);
-}
-
-// Flexible: choose x/y and whether to clear first
-void EFDisplayClass::printStringAt(const String& text, int x, int y, bool clear) {
-    if (clear) {
-        u8g2.clearBuffer();
-    }
-
-    // NOTE: u8g2 expects a baseline y, not top-left; 12 is a good baseline for 5x8 font
-    u8g2.drawStr(x, y, text.c_str());
-    u8g2.sendBuffer();
 }
 
 void EFDisplayClass::animationTick() const {
@@ -431,7 +421,7 @@ void EFDisplayClass::setHUDEnabled(bool on) {
 }
 
 void EFDisplayClass::setHUDLine(uint8_t idx, const String& text) {
-    if (idx < 4) hudLines[idx] = text;
+    if (idx < 5) hudLines[idx] = text;
 }
 
 void EFDisplayClass::clearHUD() {
@@ -458,12 +448,21 @@ void EFDisplayClass::drawHUD() const {
     u8g2.setFont(u8g2_font_5x8_tr);
     uint8_t y = HUD_Y0;
 
+    // draw lines 0..3 with uniform spacing
     for (int i = 0; i < 4; ++i) {
+        String line = truncateToWidth(hudLines[i], SCR_W);
         if (hudLines[i].length() > 0) {
-            String line = truncateToWidth(hudLines[i], SCR_W);
             u8g2.drawStr(0, y, line.c_str());
         }
         y += HUD_LINE_H;
+    }
+
+    // draw line 4 (the 5th line) at a custom Y to avoid the eye
+    if (hudLines[4].length() > 0) {
+        // clamp just in case
+        uint8_t y5 = (HUD_LINE5_Y < SCR_H) ? HUD_LINE5_Y : (SCR_H - 1);
+        String line = truncateToWidth(hudLines[4], SCR_W);
+        u8g2.drawStr(0, y5, line.c_str());
     }
 }
 
