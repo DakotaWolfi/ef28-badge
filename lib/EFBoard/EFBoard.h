@@ -113,7 +113,7 @@ class EFBoardClass {
          *
          * @return Current approx. battery capacity level in percent (0 - 100)
          */
-                const uint8_t getBatteryCapacityPercent();
+        const uint8_t getBatteryCapacityPercent();
 
         /**
          * @brief Approximates current battery capacity level in percent
