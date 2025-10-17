@@ -39,6 +39,8 @@ You can find the full schematics and PCB files in the
 # Usage and features
 
 See this page: [How to use your badge](https://www.eurofurence.org/EF28/badge/manual)
+
+
 See this page Manual For this Repo: [How to use your badge](https://ef28-badgemanual.famosindustries.ch/)
 
 
