@@ -83,17 +83,20 @@ static int      s_sortedIdx[EF_BLEFH_MAX_PEERS];
 static bool fresh(const FHPeer& p) {
   return p.used && (millis() - p.lastSeen) <= EF_BLEFH_STALE_MS;
 }
+
 static void prune() {
   uint32_t now = millis();
   for (auto &p : s_peers) {
     if (p.used && now - p.lastSeen > EF_BLEFH_PURGE_MS) p.used = false;
   }
 }
+
 static int findById(uint32_t id) {
   for (int i=0;i<EF_BLEFH_MAX_PEERS;i++)
     if (s_peers[i].used && s_peers[i].id == id) return i;
   return -1;
 }
+
 static int findOrAlloc(uint32_t id, const BLEAddress& addr) {
   int i = findById(id);
   if (i >= 0) return i;
@@ -113,16 +116,21 @@ static int findOrAlloc(uint32_t id, const BLEAddress& addr) {
   s_peers[worst].rssi = -127; s_peers[worst].lastRaw = -127; s_peers[worst].lastSeen = millis();
   return worst;
 }
+
 static int strongestFresh() {
   int best=-1, bestR=-999;
   for (int i=0;i<EF_BLEFH_MAX_PEERS;i++)
-    if (fresh(s_peers[i]) && s_peers[i].rssi > bestR) { best = i; bestR = s_peers[i].rssi; }
+    if (fresh(s_peers[i]) && s_peers[i].rssi > bestR) {
+       best = i; bestR = s_peers[i].rssi;
+    }
   return best;
 }
+
 static int freshCount() {
   int c=0; for (int i=0;i<EF_BLEFH_MAX_PEERS;i++) if (fresh(s_peers[i])) c++;
   return c;
 }
+
 static int fillSortedByRssi(int outIdx[], int maxOut) {
   int n=0;
   for (int i=0;i<EF_BLEFH_MAX_PEERS && n<maxOut;i++) if (fresh(s_peers[i])) outIdx[n++] = i;
@@ -130,6 +138,7 @@ static int fillSortedByRssi(int outIdx[], int maxOut) {
     if (s_peers[outIdx[b]].rssi > s_peers[outIdx[a]].rssi) { int t=outIdx[a]; outIdx[a]=outIdx[b]; outIdx[b]=t; }
   return n;
 }
+
 static uint8_t rssiToPercent(int rssi) {
   if (rssi < EF_BLEFH_RSSI_MIN) rssi = EF_BLEFH_RSSI_MIN;
   if (rssi > EF_BLEFH_RSSI_MAX) rssi = EF_BLEFH_RSSI_MAX;
@@ -157,7 +166,6 @@ static void applyStateIndicators(bool targetFresh) {
   //EFLed.setDragonEarTop(CRGB::Black);
   //EFLed.setDragonEarBottom(CRGB::Black);
 
-  EFLed.setDragonEye(CRGB(0, 0, 180));
   if (s_lockActive) {
     // LOCKED: eye green (bright if fresh), nose solid teal
     EFLed.setDragonEye(targetFresh ? CRGB(0, 180, 0) : CRGB(0, 60, 0));
@@ -167,12 +175,13 @@ static void applyStateIndicators(bool targetFresh) {
     uint8_t v = 40 + (uint8_t)((sinf(millis()/600.0f)*0.5f+0.5f)*60);
     EFLed.setDragonNose(CRGB(0, v, 100));
     EFLed.setDragonCheek(CRGB(0, 0, 180));
+    EFLed.setDragonEye(CRGB(0, 0, 180));
   } else { // VIEW_COUNT
     // COUNT: ears on as a “mode flag”, nose slow pulse
-    //EFLed.setDragonEarBottom(CRGB(200,0,0));
     uint8_t v = 30 + (uint8_t)((sinf(millis()/900.0f)*0.5f+0.5f)*30);
     EFLed.setDragonNose(CRGB(0, v, 100));
     EFLed.setDragonCheek(CRGB(0, 180, 0));
+    EFLed.setDragonEye(CRGB(0, 0, 180));
   }
 
   // auto-clear muzzle blink after ~120 ms
@@ -213,6 +222,7 @@ class FHScanCb : public BLEAdvertisedDeviceCallbacks {
     s_lastCbMs = millis();
   }
 };
+
 static FHScanCb s_scanCb;
 
 static void startAdvertising() {
@@ -424,50 +434,49 @@ void GameFoxHuntBle::run() {
   }
 
   // small heartbeat so you see run() ticking
-  EFLed.setDragonNose(CRGB(0,50,50));
+  EFLed.setDragonMuzzle(CRGB(0,50,50));
 
   // --- LED bar & indicators ---
   bool targetFresh = false;
   int idx = -1;
 
-  if (s_lockActive) {
+  if (s_lockActive) {    // LOCKED: show locked proximity (or 0 if stale)
     int j = findById(s_lockedBadgeId);
     targetFresh = (j >= 0 && fresh(s_peers[j]));
     if (targetFresh) idx = j;
-  }
-
-  if (!s_lockActive) {
-    int s = strongestFresh();
-    int prc = rssiToPercent(s_peers[s].rssi);
-    if (s_view == VIEW_TRACK) {
-      if (s >= 0) {
-        showPercent(prc);
-      }
-      else{
-        showCount((uint8_t)freshCount());
-      }
-    } else { // VIEW_COUNT
-      showCount((uint8_t)freshCount());
-    }
-    EFDisplay.setStaticMultiplier(101 - prc);
-  } else {
-    // LOCKED: show locked proximity (or 0 if stale)
     if (idx >= 0) {
       int prc = rssiToPercent(s_peers[idx].rssi);
       showPercent(prc);
-      EFDisplay.setStaticMultiplier(101 - prc);
+      #ifdef HasDisplay
+        EFDisplay.setStaticMultiplier(101 - prc);
+      #endif
     }
     else{
       showPercent(0);
-      EFDisplay.setStaticMultiplier(100);
+      #ifdef HasDisplay
+        EFDisplay.setStaticMultiplier(100);
+      #endif
     }
+  } else {
+    int s = strongestFresh();
+    int prc = (s >= 0) ? rssiToPercent(s_peers[s].rssi) : 0;
+    if (s_view == VIEW_TRACK) {
+      //if (s >= 0) {
+        showPercent(prc);
+      //}
+    } else { // VIEW_COUNT
+      showCount((uint8_t)freshCount());
+    }
+    #ifdef HasDisplay
+      EFDisplay.setStaticMultiplier(101 - prc);
+    #endif
   }
 
   // dragon face indicators
   applyStateIndicators(targetFresh);
 
   // --- Horn blink: flash ears if we see at least one fresh peer ---
-{
+//{
   // strongest index (for brightness); if none, returns -1
   int s = strongestFresh();
 
@@ -492,7 +501,7 @@ void GameFoxHuntBle::run() {
     EFLed.setDragonEarTop(CRGB(55,0,0));
     EFLed.setDragonEarBottom(CRGB(55,0,0));
   }
-}
+//}
 
   #ifdef HasDisplay
     EFDisplay.loop();

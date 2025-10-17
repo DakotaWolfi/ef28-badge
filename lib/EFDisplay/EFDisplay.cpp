@@ -110,13 +110,12 @@ void EFDisplayClass::loop() {
     if (!hudEnabled) {
         //audioTick();         // <— optional now; enable when you want
         animationTick();
-        
+        /*
         if(random(0, 1000) == 0) {
             lines.insert(lines.end(), new GlitchLine());
         }
-        
+        */
         // New: small steady chance + occasional bursts
-        /*
         if (random(0, 180) == 0) {
             lines.push_back(new GlitchLine());
         }
@@ -125,7 +124,7 @@ void EFDisplayClass::loop() {
             int n = random(3, 7);
             while (n--) lines.push_back(new GlitchLine());
         }
-        */
+
         animateGlitchLines();
     }else {
         // HUD mode: lighter background instead of glitch lines
