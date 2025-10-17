@@ -24,6 +24,7 @@
  * @author Honigeintopf
  */
 
+#include <EFConfig.h>
 #include <EFLed.h>
 #include <EFLogging.h>
 #include <EFPrideFlags.h>
@@ -54,7 +55,11 @@ void DisplayPrideFlag::run() {
         if (this->globals->prideFlagModeIdx == 0) {
             // Cycle through all flags
             LOGF_DEBUG("(DisplayPrideFlag) Switched pride flag to: %d\r\n", flagidx);
+            #ifdef Mel
             flagidx = (flagidx + 1) % 13;
+            #else
+            flagidx = (flagidx + 1) % 12;
+            #endif
         }
     }
 
@@ -74,24 +79,9 @@ void DisplayPrideFlag::run() {
             case 9: prideFlag = EFPrideFlags::Genderqueer; break;
             case 10: prideFlag = EFPrideFlags::Nonbinary; break;
             case 11: prideFlag = EFPrideFlags::Intersex; break;
-            case 12: prideFlag = EFPrideFlags::Wylieville; break;
-        }
-    } else {
-        switch(this->globals->prideFlagModeIdx) {
-            // Static flags
-            case 1: prideFlag = EFPrideFlags::LGBT; break;
-            case 2: prideFlag = EFPrideFlags::LGBTQI; break;
-            case 3: prideFlag = EFPrideFlags::Bisexual; break;
-            case 4: prideFlag = EFPrideFlags::Polyamorous; break;
-            case 5: prideFlag = EFPrideFlags::Polysexual; break;
-            case 6: prideFlag = EFPrideFlags::Transgender; break;
-            case 7: prideFlag = EFPrideFlags::Pansexual; break;
-            case 8: prideFlag = EFPrideFlags::Asexual; break;
-            case 9: prideFlag = EFPrideFlags::Genderfluid; break;
-            case 10: prideFlag = EFPrideFlags::Genderqueer; break;
-            case 11: prideFlag = EFPrideFlags::Nonbinary; break;
-            case 12: prideFlag = EFPrideFlags::Intersex; break;
-            case 13: prideFlag = EFPrideFlags::Wylieville; break;
+            #ifdef Mel
+                case 12: prideFlag = EFPrideFlags::Wylieville; break;
+            #endif
             default:
                 LOG_ERROR("(DisplayPrideFlag) Invalid prideFlagModeIdx!")
                 break;
