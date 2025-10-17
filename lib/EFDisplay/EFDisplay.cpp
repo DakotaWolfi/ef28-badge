@@ -67,6 +67,7 @@ static uint16_t counter = 0;
 //static int thin_line = -1;
 int battery_update_counter = 0;
 int battery_percentage = 0;
+int staticMultiplier =1;
 float battery_voltage = 0;
 
 // define these near the top of EFDisplay.cpp to avoid magic numbers
@@ -109,12 +110,13 @@ void EFDisplayClass::loop() {
     if (!hudEnabled) {
         //audioTick();         // <— optional now; enable when you want
         animationTick();
-        /*
+        
         if(random(0, 1000) == 0) {
             lines.insert(lines.end(), new GlitchLine());
         }
-        */
+        
         // New: small steady chance + occasional bursts
+        /*
         if (random(0, 180) == 0) {
             lines.push_back(new GlitchLine());
         }
@@ -123,6 +125,7 @@ void EFDisplayClass::loop() {
             int n = random(3, 7);
             while (n--) lines.push_back(new GlitchLine());
         }
+        */
         animateGlitchLines();
     }else {
         // HUD mode: lighter background instead of glitch lines
@@ -466,6 +469,10 @@ void EFDisplayClass::drawHUD() const {
     }
 }
 
+void EFDisplayClass::setStaticMultiplier(uint8_t multiplier) const {
+    staticMultiplier = multiplier;
+}
+
 void EFDisplayClass::drawHUDStatic(uint8_t yStart) const {
     if (yStart >= SCR_H) return;
     // Lightweight “TV static”: a handful of random pixels + short dashes per frame.
@@ -473,7 +480,7 @@ void EFDisplayClass::drawHUDStatic(uint8_t yStart) const {
 
     // Seed varies per frame, but we just use Arduino random()
     // DOTS: ~150 sparse pixels
-    const int DOTS = 150;
+    const int DOTS = 150*staticMultiplier/100;
     for (int i = 0; i < DOTS; ++i) {
         int x = random(0, SCR_W);
         int y = random(yStart, SCR_H);
@@ -481,7 +488,7 @@ void EFDisplayClass::drawHUDStatic(uint8_t yStart) const {
     }
 
     // Dashes: a few short horizontal jitter lines
-    const int DASHES = 10;
+    const int DASHES = 10*staticMultiplier/100;
     for (int i = 0; i < DASHES; ++i) {
         int y  = random(yStart, SCR_H);
         int x  = random(0, SCR_W - 2);

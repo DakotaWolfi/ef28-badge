@@ -31,8 +31,8 @@ class EFDisplayClass {
 
     public:
 
-        void init();
-        void loop();
+    void init();
+    void loop();
 
     void animationTick() const;
 
@@ -52,7 +52,12 @@ class EFDisplayClass {
 
     void bootupAnimation();
 
-
+    /**
+     * @brief Sets the HUD Static Multiplier.
+     *
+     * @param text Menu Text to Display
+     * @param showMenu Boolan show ot not show menu
+     */
     void DisplayMenu(const String& text,bool showMenu);
 
     void drawMultiline(int x, int y, const char *text);//helper automatic line wrap
@@ -66,14 +71,38 @@ class EFDisplayClass {
     void audioInit();
     void audioTick();
 
+    /**
+     * @brief Sets the HUD Static Multiplier.
+     *
+     * @param multiplier Sets the Static Multiplier
+     */
+    void   setStaticMultiplier(uint8_t multiplier) const;
+
     private:
     // HUD state
     bool   hudEnabled = false;
     String hudLines[5]; // 5 short lines max
 
+
+        /**
+         * @brief Draws the HUD to the Display.
+         */
     void   drawHUD() const;
+
+        /**
+         * @brief Trunkates a String to a max length.
+         *
+         * @param s string to trunkate
+         * @param maxW Max Length
+         * @return trunkated string
+         */
     static String truncateToWidth(const String& s, uint8_t maxW);
 
+        /**
+         * @brief Draws the Stacti to the screen.
+         *
+         * @param yStart where the static shoul start, use 0 for the whole screen.
+         */
     void   drawHUDStatic(uint8_t yStart) const;
 };
 

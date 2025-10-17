@@ -437,17 +437,30 @@ void GameFoxHuntBle::run() {
   }
 
   if (!s_lockActive) {
+    int s = strongestFresh();
+    int prc = rssiToPercent(s_peers[s].rssi);
     if (s_view == VIEW_TRACK) {
-      int s = strongestFresh();
-      if (s >= 0) showPercent(rssiToPercent(s_peers[s].rssi));
-      else        showCount((uint8_t)freshCount());
+      if (s >= 0) {
+        showPercent(prc);
+      }
+      else{
+        showCount((uint8_t)freshCount());
+      }
     } else { // VIEW_COUNT
       showCount((uint8_t)freshCount());
     }
+    EFDisplay.setStaticMultiplier(101 - prc);
   } else {
     // LOCKED: show locked proximity (or 0 if stale)
-    if (idx >= 0) showPercent(rssiToPercent(s_peers[idx].rssi));
-    else          showPercent(0);
+    if (idx >= 0) {
+      int prc = rssiToPercent(s_peers[idx].rssi);
+      showPercent(prc);
+      EFDisplay.setStaticMultiplier(101 - prc);
+    }
+    else{
+      showPercent(0);
+      EFDisplay.setStaticMultiplier(100);
+    }
   }
 
   // dragon face indicators
