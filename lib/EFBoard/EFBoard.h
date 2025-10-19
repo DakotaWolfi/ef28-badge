@@ -30,7 +30,7 @@
 #include "EFBoardPowerState.h"
 
 //#define EFBOARD_FIRMWARE_VERSION "v2024.09.07"
-#define EFBOARD_FIRMWARE_VERSION "v2025.10.08"
+#define EFBOARD_FIRMWARE_VERSION "v2025.10.18"
 #define EFBOARD_SERIAL_DEVICE USBSerial    //!< Serial device to use for logging
 #define EFBOARD_SERIAL_BAUD 115200         //!< Baudrate for the serial device
 
@@ -79,6 +79,11 @@ class EFBoardClass {
          * @brief Performs basic initialization of the badge
          */
         void setup();
+
+        /**
+         * @brief Performs basic loop of the badge
+         */
+        void loop();
 
         /**
          * @brief Returns the number of boots / wakeups since power on
@@ -199,6 +204,18 @@ class EFBoardClass {
          * @brief Writes a credit block to the serial console
          */
         void printCredits();
+
+        /**
+         * @brief Handle one complete console command line received via the serial interface.
+         * 
+         * Supports:
+         *  - `SET NAME:<text>`  → store the badge name in NVS
+         *  - `GET NAME`         → print the current name to serial
+         *  - `RESET NAME`       → clear stored name (defaults on next boot)
+         * 
+         * @param ln The command line string (without newline characters)
+         */
+        void handleConsoleLine(const String& ln);
 
 };
 

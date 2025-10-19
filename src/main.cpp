@@ -285,6 +285,7 @@ void setup() {
  * @brief Main program loop
  */
 void loop() {
+    EFBoard.loop();
     #ifdef HasDisplay
         EFDisplay.loop();//Display loop call
     #endif

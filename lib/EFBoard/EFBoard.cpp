@@ -32,6 +32,9 @@
 #include <EFLogging.h>
 
 #include "EFBoard.h"
+#include "EFSettings.h"
+
+static String s_rxLine;  // << add
 
 RTC_DATA_ATTR uint32_t bootCount = 0;
 
@@ -48,7 +51,7 @@ void EFBoardClass::setup() {
     //delay(2000);
     EFBOARD_SERIAL_DEVICE.begin(EFBOARD_SERIAL_BAUD);
     delay(50);
-
+    EFSettings::begin();
     LOG("\r\n");
     this->printCredits();
     LOG("\r\n");
@@ -101,6 +104,18 @@ void EFBoardClass::setup() {
     //this->enableOTA();
 
     LOG_INFO("(EFBoard) Initialization complete")
+}
+
+void EFBoardClass::loop() {
+  while (EFBOARD_SERIAL_DEVICE.available()) {
+    char c = EFBOARD_SERIAL_DEVICE.read();
+    if (c == '\n' || c == '\r') {
+      if (s_rxLine.length()) handleConsoleLine(s_rxLine);
+      s_rxLine = "";
+    } else if (isPrintable(c) && s_rxLine.length() < 64) {
+      s_rxLine += c;
+    }
+  }
 }
 
 unsigned int EFBoardClass::getWakeupCount() {
@@ -435,6 +450,26 @@ void EFBoardClass::printCredits() {
 ▀
 
 */
+
+static void handleConsoleLine(const String& ln) {   // << add
+  if (ln.startsWith("SET NAME:")) {
+    String name = ln.substring(9);
+    if (EFSettings::setName(name)) {
+      EFBOARD_SERIAL_DEVICE.println("OK");
+    } else {
+      EFBOARD_SERIAL_DEVICE.println("ERR");
+    }
+  } else if (ln == "GET NAME") {
+    String n = EFSettings::getName();
+    EFBOARD_SERIAL_DEVICE.println(n.length() ? n : "(unset)");
+  } else if (ln == "RESET NAME") {
+    EFSettings::resetName();
+    EFBOARD_SERIAL_DEVICE.println("OK");
+  } else {
+    EFBOARD_SERIAL_DEVICE.println("ERR");
+  }
+}
+
 #if !defined(NO_GLOBAL_INSTANCES) && !defined(NO_GLOBAL_EFBOARD)
 EFBoardClass EFBoard;
 #endif
