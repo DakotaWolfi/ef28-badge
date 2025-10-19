@@ -28,37 +28,27 @@
  */
 
 #include "EFBoardPowerState.h"
+#include <EFConfig.h>
 
 //#define EFBOARD_FIRMWARE_VERSION "v2024.09.07"
 #define EFBOARD_FIRMWARE_VERSION "v2025.10.08"
 #define EFBOARD_SERIAL_DEVICE USBSerial    //!< Serial device to use for logging
 #define EFBOARD_SERIAL_BAUD 115200         //!< Baudrate for the serial device
 
-// The Step-Down converter still manages to hold 3.00V with 3,32V input. The ESP needs 3.0V at least
-#define EFBOARD_PIN_VBAT 10                //!< Pin the analog voltage divider for V_BAT is connected to (ADC1_CH9)
-// --- choose battery type ---
-#define EFBOARD_BAT_TYPE_LIION     // or comment this out to use Alkaline
-//#define EFBOARD_BAT_TYPE_ALKALINE
-
-#define EFBOARD_BROWN_OUT_SOFT EFBOARD_VBAT_MIN //!< V_BAT threshold after which a soft brown out is triggered
-#define EFBOARD_BROWN_OUT_HARD (EFBOARD_BROWN_OUT_SOFT - 0.08) //!< V_BAT threshold after which a hard brown out is triggered
-
 #ifdef EFBOARD_BAT_TYPE_LIION
     #define EFBOARD_BAT_TYPE_NAME "LiIon"
     #define EFBOARD_NUM_BATTERIES 1            //!< Number of battery cells used for V_BAT NOTE: LiIon LIPo should only use Singel Cell Akku do not use anything else
     #define EFBOARD_VBAT_MAX (4.2 * EFBOARD_NUM_BATTERIES) //!< Voltage at which battery cells are considered full
     #define EFBOARD_VBAT_MIN (3.4 * EFBOARD_NUM_BATTERIES) //!< Voltage at which battery cells are considered empty
-#elif defined(EFBOARD_BAT_TYPE_ALKALINE)
+#else //assume Akaline
     #define EFBOARD_BAT_TYPE_NAME "Alkaline"
     #define EFBOARD_NUM_BATTERIES 3            //!< Number of battery cells used for V_BAT
     #define EFBOARD_VBAT_MAX (1.60 * EFBOARD_NUM_BATTERIES) //!< Voltage at which battery cells are considered full
     #define EFBOARD_VBAT_MIN (1.13 * EFBOARD_NUM_BATTERIES) //!< Voltage at which battery cells are considered empty
-#else //assume Akaline
-    #define EFBOARD_BAT_TYPE_NAME "Unknown"
-    #define EFBOARD_NUM_BATTERIES 3            //!< Number of battery cells used for V_BAT
-    #define EFBOARD_VBAT_MAX (1.60 * EFBOARD_NUM_BATTERIES) //!< Voltage at which battery cells are considered full
-    #define EFBOARD_VBAT_MIN (1.13 * EFBOARD_NUM_BATTERIES) //!< Voltage at which battery cells are considered empty
 #endif
+
+#define EFBOARD_BROWN_OUT_SOFT EFBOARD_VBAT_MIN //!< V_BAT threshold after which a soft brown out is triggered
+#define EFBOARD_BROWN_OUT_HARD (EFBOARD_BROWN_OUT_SOFT - 0.08) //!< V_BAT threshold after which a hard brown out is triggered
 
 /**
  * @brief Basic related to the EF badge board

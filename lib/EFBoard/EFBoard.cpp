@@ -30,7 +30,7 @@
 
 #include <EFLed.h>
 #include <EFLogging.h>
-
+#include <EFConfig.h>
 #include "EFBoard.h"
 
 RTC_DATA_ATTR uint32_t bootCount = 0;
@@ -159,10 +159,8 @@ const uint8_t EFBoardClass::getBatteryCapacityPercent() {
 
 #ifdef EFBOARD_BAT_TYPE_LIION
     return this->getBatteryCapacityLiIonPercent();
-#elif defined(EFBOARD_BAT_TYPE_ALKALINE)
-    return this->getBatteryCapacityAlkalinePercent();
 #else
-    #error "No battery type defined! Define EFBOARD_BAT_TYPE_LIION or EFBOARD_BAT_TYPE_ALKALINE"
+    return this->getBatteryCapacityAlkalinePercent();
 #endif
 }
 
