@@ -127,12 +127,13 @@ void EFDisplayClass::loop() {
 
 
 void EFDisplayClass::updatePowerInfo() const {
-    battery_update_counter++;
-    if(battery_update_counter % 1000 == 0) {
+    if(battery_update_counter == 0) {
         battery_percentage = EFBoard.getBatteryCapacityPercent();
         battery_voltage = EFBoard.getBatteryVoltage();
+    }else if(battery_update_counter % 1000 == 0) {
         battery_update_counter = 0;
     }
+    battery_update_counter++;
     String batt = "BAT:" + String(battery_percentage) + "%";
 
     if(!EFBoard.isBatteryPowered()) {
@@ -412,7 +413,7 @@ void EFDisplayClass::setHUDEnabled(bool on) {
 }
 
 void EFDisplayClass::setHUDLine(uint8_t idx, const String& text) {
-    if (idx < 5) hudLines[idx] = text;
+    if (idx < 6) hudLines[idx] = text;
 }
 
 void EFDisplayClass::clearHUD() {
