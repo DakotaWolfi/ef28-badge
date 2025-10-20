@@ -15,6 +15,7 @@
     #include <EFDisplay.h>
 #endif
 
+#include <EFSettings.h>
 
 #include <WiFi.h>
 #include <BLEDevice.h>
@@ -316,10 +317,16 @@ void GameFoxHuntBle::entry() {
   LOGF_INFO("[FoxHunt] myBadgeId=0x%08lX\r\n", (unsigned long)s_myBadgeId);
 
   String devName = "EF28";
-  if (strlen(EF_USER_NAME) > 0) {
+  //get name from settings
+  String BadgeName = EFSettings::getName();
+  /*if (strlen(EF_USER_NAME) > 0) {
     devName += "-";
     devName += EF_USER_NAME; // becomes e.g. "EF28-Jenna"
-  }
+  }else */
+  //if(strlen(BadgeName) > 0){
+  devName += "-";
+  devName += BadgeName; // becomes e.g. "EF28-Jenna"
+  //}
   s_devName = devName.c_str();
 
   BLEDevice::init(s_devName.c_str());
