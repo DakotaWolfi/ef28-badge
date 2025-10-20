@@ -27,8 +27,8 @@
  * @author Honigeintopf
  */
 
-#include "EFBoardPowerState.h"
 #include <EFConfig.h>
+#include "EFBoardPowerState.h"
 
 //#define EFBOARD_FIRMWARE_VERSION "v2024.09.07"
 #define EFBOARD_FIRMWARE_VERSION "v2025.10.18"
@@ -197,12 +197,10 @@ class EFBoardClass {
 
         /**
          * @brief Handle one complete console command line received via the serial interface.
-         * 
          * Supports:
          *  - `SET NAME:<text>`  → store the badge name in NVS
          *  - `GET NAME`         → print the current name to serial
          *  - `RESET NAME`       → clear stored name (defaults on next boot)
-         * 
          * @param ln The command line string (without newline characters)
          */
         void handleConsoleLine(const String& ln);

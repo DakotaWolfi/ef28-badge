@@ -30,10 +30,10 @@
 #define FASTLED_ALL_PINS_HARDWARE_SPI
 #define FASTLED_ESP32_SPI_BUS HSPI
 
+#include <EFConfig.h>
 #include <FastLED.h>
 
-#define EFLED_PIN_LED_DATA 21
-#define EFLED_PIN_5VBOOST_ENABLE 9
+
 
 /**
  * @brief Initial value for global maximum for the LED brightness, 0–255
@@ -44,20 +44,6 @@
  * overwhelm it and cause the colors to glitch. To be safe, choose a value below 50!
  */
 #define EFLED_MAX_BRIGHTNESS_DEFAULT 50
-
-#define EFLED_TOTAL_NUM 17
-#define EFLED_DRAGON_NUM 6
-#define EFLED_EFBAR_NUM 11
-
-#define EFLED_DARGON_OFFSET 0
-#define EFLED_EFBAR_OFFSET 6
-
-#define EFLED_DRAGON_NOSE_IDX 0
-#define EFLED_DRAGON_MUZZLE_IDX 1
-#define EFLED_DRAGON_EYE_IDX 2
-#define EFLED_DRAGON_CHEEK_IDX 3
-#define EFLED_DRAGON_EAR_BOTTOM_IDX 4
-#define EFLED_DRAGON_EAR_TOP_IDX 5
 
 
 /**

@@ -28,7 +28,7 @@
  */
 
 #include <Arduino.h>
-
+#include <EFConfig.h>
 #include "EFTouchZone.h"
 
 #define EFTOUCH_PIN_TOUCH_FINGERPRINT 3

@@ -24,7 +24,7 @@
  * @author Irah / DarkRat
  */
 
-//#include <EFConfig.h>
+#include <EFConfig.h>
 #include <GlitchLine.h>
 #include <EFLogging.h>
 #include <EFBoard.h>
@@ -39,17 +39,6 @@
 #include <sstream>
 
 #include "EFDisplay.h"
-
-
-#define OLED_CS    5   // Chip Select
-#define OLED_DC    6   // Data/Command
-#define OLED_RESET 7   // Reset
-#define OLED_MOSI  17  // MOSI
-#define OLED_SCLK  18  // SCLK
-
-// --- AUDIO / NOISE CONFIG ---
-#define AUDIO_PIN   4
-#define NOISE_PIN   12   // <- use exactly one floating pin
 
 
 #include <math.h>   // for fabsf

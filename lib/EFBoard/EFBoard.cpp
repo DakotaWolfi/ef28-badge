@@ -23,14 +23,14 @@
 /**
  * @author Honigeintopf
  */
-
+#include <EFConfig.h>
 #include <Arduino.h>
 #include <ArduinoOTA.h>
 #include <WiFi.h>
 
 #include <EFLed.h>
 #include <EFLogging.h>
-#include <EFConfig.h>
+
 #include "EFBoard.h"
 #include "EFSettings.h"
 
@@ -174,8 +174,10 @@ const uint8_t EFBoardClass::getBatteryCapacityPercent() {
 
 #ifdef EFBOARD_BAT_TYPE_LIION
     return this->getBatteryCapacityLiIonPercent();
-#else
+#elif defined(EFBOARD_BAT_TYPE_ALKALINE)
     return this->getBatteryCapacityAlkalinePercent();
+#else
+    #error "No battery type defined! Define EFBOARD_BAT_TYPE_LIION or EFBOARD_BAT_TYPE_ALKALINE"
 #endif
 }
 
@@ -449,24 +451,25 @@ void EFBoardClass::printCredits() {
 
 */
 
-static void handleConsoleLine(const String& ln) {   // << add
-  if (ln.startsWith("SET NAME:")) {
-    String name = ln.substring(9);
-    if (EFSettings::setName(name)) {
-      EFBOARD_SERIAL_DEVICE.println("OK");
+void EFBoardClass::handleConsoleLine(const String& ln) {
+    if (ln.startsWith("SET NAME:")) {
+        String name = ln.substring(9);
+        if (EFSettings::setName(name)) {
+            EFBOARD_SERIAL_DEVICE.println("OK");
+        } else {
+            EFBOARD_SERIAL_DEVICE.println("ERR");
+        }
+    } else if (ln == "GET NAME") {
+        String n = EFSettings::getName();
+        EFBOARD_SERIAL_DEVICE.println(n.length() ? n : "(unset)");
+    } else if (ln == "RESET NAME") {
+        EFSettings::resetName();
+        EFBOARD_SERIAL_DEVICE.println("OK");
     } else {
-      EFBOARD_SERIAL_DEVICE.println("ERR");
+        EFBOARD_SERIAL_DEVICE.println("ERR");
     }
-  } else if (ln == "GET NAME") {
-    String n = EFSettings::getName();
-    EFBOARD_SERIAL_DEVICE.println(n.length() ? n : "(unset)");
-  } else if (ln == "RESET NAME") {
-    EFSettings::resetName();
-    EFBOARD_SERIAL_DEVICE.println("OK");
-  } else {
-    EFBOARD_SERIAL_DEVICE.println("ERR");
-  }
 }
+
 
 #if !defined(NO_GLOBAL_INSTANCES) && !defined(NO_GLOBAL_EFBOARD)
 EFBoardClass EFBoard;
