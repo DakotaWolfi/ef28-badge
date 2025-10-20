@@ -455,7 +455,7 @@ void EFBoardClass::handleConsoleLine(const String& ln) {
     if (ln.startsWith("SET NAME:")) {
         String name = ln.substring(9);
         if (EFSettings::setName(name)) {
-            EFBOARD_SERIAL_DEVICE.println("OK");
+            EFBOARD_SERIAL_DEVICE.println("Name Recived: "+ name +" OK");
         } else {
             EFBOARD_SERIAL_DEVICE.println("ERR");
         }
