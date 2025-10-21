@@ -7,21 +7,9 @@
 #define EF_USER_NAME "N/A"
 //#define Mel 1 // comment out to disable if you dont know mel4anie XD
 
-
-
-
-
-
 //#define EF_USER_NAME_FORCE 1   // uncomment to force EF_USER_NAME on each boot
 
-
-
-
 //EFBord Config
-
-
-
-
 // The Step-Down converter still manages to hold 3.00V with 3,32V input. The ESP needs 3.0V at least
 #define EFBOARD_PIN_VBAT 10                //!< Pin the analog voltage divider for V_BAT is connected to (ADC1_CH9)
 // --- choose battery type ---
@@ -48,7 +36,6 @@
 
 
 //EFDisplay Config
-
 #define OLED_CS    5   // Chip Select
 #define OLED_DC    6   // Data/Command
 #define OLED_RESET 7   // Reset
