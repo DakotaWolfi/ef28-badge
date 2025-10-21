@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<!-- saved from url=(0050)https://archive.eurofurence.org/EF28/badge/manual/ -->
+<html prefix="og: http://ogp.me/ns#" lang="en" nighteye="disabled"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<title>Eurofurence 28: Badge - How to Use Your Cyber LED Badge</title>
+		<link rel="stylesheet" href="./uikit.min.css">
+        <style>
+            body.no-header main { margin-top: 0 !important; }
+            @media (min-width: 64.063em) {
+                body.no-header main { background-position-y: 0 !important; }
+            }
+            html, body, main { background: #000 !important; }
+        </style>
+		<link rel="stylesheet" href="./main.css">
+		<link rel="stylesheet" href="./theme.css">
+		<link rel="stylesheet" href="./responsive.css">
+	</head>
+
+	<body>
+        <body class="no-header">
+        <main>
+            <div id="content">
+                <h1 style="background:#fff3cd;border:1px solid #ffe69c;color:#664d03;padding:.5rem .75rem;border-radius:.5rem;">
+            This Site is NOT the EF28 Webpage but is copied from it and is Hosted by FMI.
+            </h1>
+                <b>Official EF28 Badge manual: </b>
+                    <a href="https://archive.eurofurence.org/EF28/badge/manual/" target="_blank" rel="noopener">
+                        https://archive.eurofurence.org/EF28/badge/manual/
+                    </a>
+                <!---<h1>This Site is NOT the EF28 Webpage but is copied from it and is Hosted by FMI.</h1>-->
+				<h1>How to Use Your Cyber LED Badge</h1>
+
+<section class="uk-column-1-2@m">
+
+    <p>Your badge can be controlled using two touch buttons: The fingerprint touch button at the top and one is at the tip of the dragons nose! They support detecting three kinds of input: A single tap, a short press (half a second) and a long press (over three seconds). Note: the long press is registered only after you release your finger.</p>
+</section>
+
+<section class="uk-column-1-1@m">
+  <h3 id="updating-firmware" class="uk-column-span uk-margin-top">What firmware am I running?</h3>
+
+  <p>
+    Your badge comes pre-programmed with colorful LED patterns. But even while EF is running, we might release updates to the software.<br>
+    The current official EF version is <code>v2024.09.07</code>.<br>
+    Note The Version with is represented on this Manual is for Verision <code>v2025.10.18</code>.<br>
+    If your dragon's eye pulses <span style="color:#ff0000;">red</span> after power-on, you're on this version.
+  </p>
+  <p>
+    If your nose flashes <span style="color:#0080a0;">teal</span> three times at startup, you’re running Jenna’s firmware.
+    <br>
+    
+    <section class="uk-grid uk-child-width-1-2@s uk-child-width-1-3@m uk-grid-match uk-grid-small uk-grid-stack" uk-grid="">
+        <div class="uk-first-column">
+            <div class="uk-card">
+                <div class="uk-card-media-top uk-text-center">
+                    <img src="./badge_bootup_original.gif" alt="Bootup EF Firmware">
+                </div>
+                <div class="uk-card-body">
+                    <h3 class="uk-card-title">Bootup EF Firmware</h3>
+                    <p>this is the Bootup Animation of the Original EF Firmware.</p>
+                </div>
+            </div>
+        </div>
+        <div class="uk-first-column">
+            <div class="uk-card">
+                <div class="uk-card-media-top uk-text-center">
+                    <img src="./badge_bootup_FMI.gif" alt="Bootup FMI Firmware">
+                </div>
+                <div class="uk-card-body">
+                    <h3 class="uk-card-title">Bootup FMI Firmware</h3>
+                    <p>this is the Bootup Animation of the FMI Firmware.</p>
+                </div>
+            </div>
+        </div>
+        <br>
+    </section>
+    This manual describes Version <code>v2025.10.18</code>.
+  </p>
+
+  <p>
+    Want to update or reset your badge firmware?
+    Using a Chrome-based browser, you can flash it directly via USB:
+  </p>
+
+  <ul>
+    <li>
+      <b>Official EF firmware:</b><br>
+      <a href="https://badge.cyberrats.wtf/" target="_blank" rel="noopener">
+        https://badge.cyberrats.wtf/
+    </a>
+    </li>
+    <li>
+      <b>FMI / Jenna custom flasher (WIP, usable):</b><br>
+      <a href="https://ef28-badgemanual.famosindustries.ch/flasher/flasher.html" target="_blank" rel="noopener">https://ef28-badgemanual.famosindustries.ch/flasher/flasher.html</a><br>
+      <span class="small-muted">
+        Includes a selector for <b>OLED</b> vs <b>No OLED</b>. Choose the variant that matches your badge hardware.
+        Choosing the wrong one won’t brick the badge; the display may simply stay off or do extra work until you flash the correct variant.
+      </span>
+    </li>
+  </ul>
+
+  <p class="small-muted">
+    Tip: Use Chrome/Edge on desktop over HTTPS. If flashing doesn’t start, close any serial monitors first.
+    If auto-reset fails, hold <b>BOOT</b>, tap <b>EN/RST</b>, click <i>Install</i>, then release <b>BOOT</b>.
+  </p>
+
+  <p>
+    <strong>Source code and custom firmware:</strong><br>
+    <a href="https://github.com/DakotaWolfi/ef28-badge" target="_blank" rel="noopener">github.com/DakotaWolfi/ef28-badge</a>
+  </p>
+
+  <p>
+    <strong>Source code (original EF firmware):</strong><br>
+    <a href="https://github.com/eurofurence/ef28-badge" target="_blank" rel="noopener">github.com/eurofurence/ef28-badge</a>
+  </p>
+</section>
+
+<h2 id="usage" class="uk-column-span uk-margin-top">Usage</h2>
+<section class="uk-grid uk-child-width-1-2@s uk-child-width-1-3@m uk-grid-match uk-grid-small uk-grid-stack" uk-grid="">
+    <div class="uk-first-column">
+        <div class="uk-card">
+            <div class="uk-card-media-top uk-text-center">
+                <img src="./badge_lock.gif" alt="Locking the badge">
+            </div>
+            <div class="uk-card-body">
+                <h3 class="uk-card-title">Locking your badge</h3>
+                <p>If the badge is unlocked, different things about the current mode can be changed (mode configuration, see the list of modes below). If you want to lock inputs, hold the nose touch button and fingerprint touch button for three seconds and release. The eye should blink red three times, indicating that the badge is locked. In the locked state, other touch inputs do not work, preventing accidental changing of your settings. Please note: The detection of both touch buttons being held at the same time can be flaky and might need a few tries.</p>
+            </div>
+        </div>
+    </div>
+    <div class="uk-grid-margin uk-first-column">
+        <div class="uk-card">
+            <div class="uk-card-media-top uk-text-center">
+                <img src="./badge_unlock.gif" alt="Unlocking the badge">
+            </div>
+            <div class="uk-card-body">
+                <h3 class="uk-card-title">Unlocking your badge</h3>
+                <p>If the badge is locked, hold the nose touch button and fingerprint touch button for three seconds and release. The eye should blink green three times, indicating that the badge is unlocked. The touch buttons can be used again. Please note: The detection of both touch buttons being held at the same time can be flaky and might need a few tries.</p>
+            </div>
+        </div>
+    </div>
+    <div class="uk-grid-margin uk-first-column">
+        <div class="uk-card">
+            <div class="uk-card-media-top uk-text-center">
+                <img src="./badge_menu.gif" alt="Mode selection">
+            </div>
+            <div class="uk-card-body">
+                <h3 class="uk-card-title">Mode selection</h3>
+                <p>Short press the fingerprint touch button to enter mode selection. You should see a white blinking cursor at the letters of the EUROFURENCE text. Currently only modes E to F are implemented. Tapping the fingerprint touch button cycles through the modes. Short press of the fingerprint touch button accepts this mode. For a list of available modes, see below.</p>
+            </div>
+        </div>
+    </div>
+    <div class="uk-grid-margin uk-first-column">
+        <div class="uk-card">
+            <div class="uk-card-media-top uk-text-center">
+                <img src="./badge_menu.gif" alt="Changing brightness">
+            </div>
+            <div class="uk-card-body">
+                <h3 class="uk-card-title">Changing brightness</h3>
+                <p>When you are in 'mode selection', you can long-press the nose touch button to cycle between different brightness values. These are saved between restarts.</p>
+            </div>
+        </div>
+    </div>
+	    <div class="uk-grid-margin uk-first-column">
+        <div class="uk-card">
+            <div class="uk-card-media-top uk-text-center">
+                <img src="./badge_battery_check.gif" alt="Check Battery Level">
+            </div>
+            <div class="uk-card-body">
+                <h3 class="uk-card-title">Check Battery Level</h3>
+                <p>When you are in 'mode selection', you can tap the nose touch button to quickly display the Battery Level.</p>
+            </div>
+        </div>
+    </div>
+    <div class="uk-grid-margin uk-first-column">
+        <div class="uk-card">
+            <div class="uk-card-media-top uk-text-center">
+                <img src="./badge_powerlow.gif" alt="Low battery">
+            </div>
+            <div class="uk-card-body">
+                <h3 class="uk-card-title">Low battery</h3>
+                <p>If you see the nose-LED blinking, the battery power is low. Turning it off and on again sometimes gives a bit more runtime.</p>
+            </div>
+        </div>
+    </div>
+    <div class="uk-grid-margin uk-first-column">
+        <div class="uk-card">
+            <div class="uk-card-media-top uk-text-center">
+                <img src="./badge_powercrit.gif" alt="Critical battery level">
+            </div>
+            <div class="uk-card-body">
+                <h3 class="uk-card-title">Critical battery level</h3>
+                <p>If you see the nose-LED blinking in short pulses with longer pauses, the battery is below a critical level. Please do not leave your Badge running in this mode and replace the batteries.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+<section class="uk-column-1-1@m">
+	<h2 id="available-modes" class="uk-column-span uk-margin-top">Available modes</h2>
+	<p>The following modes are available. Modes are chosen via the blinking cursor over the letters in “EUROFURENCE”. Some letters appear multiple times (e.g., there are several “E”s), so different occurrences may map to different modes.</p>
+
+<h3>E: Pride flags</h3>
+<p>Displays different pride flags. Tap the <em>fingerprint</em> touch button to choose:
+</p>
+<ul>
+  <li>Cycle through all flags</li>
+  <li>LGBT</li>
+  <li>LGBTQI</li>
+  <li>Bisexual</li>
+  <li>Polyamorous</li>
+  <li>Polysexual</li>
+  <li>Transgender</li>
+  <li>Pansexual</li>
+  <li>Asexual</li>
+  <li>Genderfluid</li>
+  <li>Genderqueer</li>
+  <li>Nonbinary</li>
+  <li>Intersex</li>
+</ul>
+
+<h3>U: Rainbow</h3>
+<p>Shows a colorful rainbow animation. Short-press the <em>fingerprint</em> button to switch between styles.</p>
+
+<h3>R: Matrix</h3>
+<p>Matrix-style animation. Tap the <em>fingerprint</em> button to change color.</p>
+
+<h3>O: Chaser</h3>
+<p>Chaser animation. Tap the <em>fingerprint</em> button to switch styles and colors.</p>
+
+<h3>F: Heartbeat</h3>
+<p>Pulsing/heartbeat animation. Tap the <em>nose</em> to switch random colors. Short-press the <em>nose</em> to switch between three speeds.</p>
+
+<h3>U: OTA Update</h3>
+<p>Over-the-air update menu point. <strong>Currently disabled</strong> (no function).</p>
+
+<h3>R: Perlin</h3>
+<p>Perlin-style animation.</p>
+
+<h3>E: Hue Mesh Game</h3>
+<p>Enter the Hue Mesh game. Tap the <em>fingerprint</em> button to change your color; tap the <em>nose</em> button to broadcast your color to others. Have fun!</p>
+
+<h3>N: VU Meter</h3>
+<p>Audio VU meter (requires a microphone on pin 4).</p>
+<h3>C: Foxhunt</h3>
+<p>
+  Enter the Fox Hunt game. In this mode, your badge scans for other badges that are also in Fox Hunt mode.
+</p>
+
+<p>
+  When another badge is detected, the LEDs show different colors and patterns to indicate your current state:
+</p>
+
+<ul>
+  <li><strong>Locked:</strong> Eye glows <span style="color:#00b400;">green</span> (bright when freshly locked, dim when old) and <em>nose</em> is solid <span style="color:#0080a0;">teal</span>. You have locked onto a target.</li>
+  <li><strong>Track View:</strong> Eye and cheeks glow <span style="color:#0000b4;">blue</span>, and the <em>nose</em> pulses teal to show scanning or signal strength. The pulse rate increases slightly when the target signal is stronger, helping you track distance.</li>
+  <li><strong>Count View:</strong> Eye remains <span style="color:#0000b4;">blue</span>, cheeks turn <span style="color:#00b400;">green</span> to mark “count mode,” and the nose makes a slower teal pulse. This view shows how many badges are currently detected nearby.</li>
+</ul>
+
+<p>
+  Use the <strong>fingerprint button</strong> to <em>lock</em> onto the currently strongest badge signal — that becomes your target.<br>
+  Use the <strong>nose button</strong> to <em>switch between</em> <strong>Signal/Track View</strong> and <strong>Count View</strong>:
+</p>
+
+<ul>
+  <li><strong>Signal/Track View:</strong> Displays scanning activity and proximity to your locked target.</li>
+  <li><strong>Count View:</strong> Displays how many other badges are in range.</li>
+</ul>
+
+<p>
+  The badge automatically clears any short muzzle flashes after about 120&nbsp;milliseconds.
+  If the LEDs are dim or static, no other Fox Hunt badges are currently within range.
+</p>
+<p>If you are in the Fox Hunt game the Following states can be displayed. its meaning are as follow:</p>
+<section class="uk-grid uk-child-width-1-2@s uk-child-width-1-3@m uk-grid-match uk-grid-small uk-grid-stack" uk-grid="">
+	<div class="uk-grid-margin uk-first-column">
+        <div class="uk-card">
+            <div class="uk-card-media-top uk-text-center">
+                <img src="./badge_FH_no_pair.gif" alt="Fox Hunt Game No Pairs">
+            </div>
+            <div class="uk-card-body">
+                <h3 class="uk-card-title">Fox Hunt Game No Pairs</h3>
+                <p>This state shows that no other badge running Fox Hunt is within range. and we are scanning for batches</p>
+            </div>
+        </div>
+    </div>
+    <div class="uk-grid-margin uk-first-column">
+        <div class="uk-card">
+            <div class="uk-card-media-top uk-text-center">
+                <img src="./badge_FH_XX.gif" alt="Track View">
+            </div>
+            <div class="uk-card-body">
+                <h3 class="uk-card-title">Track View (strongest)</h3>
+                <p>this State shows you reciving at least one other badge running Fox Hunt that is within range, the signal strength is displayed on the Letters as bargraf style. we are tracking the strongest Batch</p>
+            </div>
+        </div>
+    </div>
+    <div class="uk-grid-margin uk-first-column">
+        <div class="uk-card">
+            <div class="uk-card-media-top uk-text-center">
+                <img src="./badge_FH_xx.gif" alt="Count View">
+            </div>
+            <div class="uk-card-body">
+                <h3 class="uk-card-title">Count View</h3>
+                <p>this State shows you are reciving other batches within range, the amount of batches around are displayed on the Letters as bargraf style.</p>
+            </div>
+        </div>
+    </div>
+    <div class="uk-grid-margin uk-first-column">
+        <div class="uk-card">
+            <div class="uk-card-media-top uk-text-center">
+                <img src="./badge_FH_XX.gif" alt="Fox Hunt Game No Pairs">
+            </div>
+            <div class="uk-card-body">
+                <h3 class="uk-card-title">xxxx</h3>
+                <p>ccccc</p>
+            </div>
+        </div>
+    </div>
+
+</section>
+
+<h3>E: NA Empty slot</h3>
+<p>
+  This Letter / Menu Entry is currently empty and is not selectable.
+</p>
+
+
+    <p>Keep an eye out for updates!</p>
+</section>
+			</div>
+            <hr>
+            <footer style="text-align:center; font-size:0.9em; color:#666; margin-top:2em;">
+              This manual is based on the original <strong>Eurofurence 28 Badge Manual</strong><br>
+              and has been extended and updated by <strong>Jenna (FMI)</strong> with additional content,
+              firmware information, and Fox Hunt documentation.<br>
+              Source and firmware code available on
+              <a href="https://github.com/DakotaWolfi/ef28-badge" target="_blank" rel="noopener">
+                GitHub
+              </a>.
+            </footer>
+		</main>
+</body></html>
