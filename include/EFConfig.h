@@ -19,14 +19,15 @@
 //EFLed Config
 #define EFLED_PIN_LED_DATA 21
 #define EFLED_PIN_5VBOOST_ENABLE 9
-
+//number OF LEDs
 #define EFLED_TOTAL_NUM 17
 #define EFLED_DRAGON_NUM 6
 #define EFLED_EFBAR_NUM 11
-
+//first LEDs from Dragon (default 0)
 #define EFLED_DARGON_OFFSET 0
+//first LEDs from bar (default 6)
 #define EFLED_EFBAR_OFFSET 6
-
+//order of Dragon LEDs
 #define EFLED_DRAGON_NOSE_IDX 0
 #define EFLED_DRAGON_MUZZLE_IDX 1
 #define EFLED_DRAGON_EYE_IDX 2
@@ -47,7 +48,7 @@
 #define NOISE_PIN   12   // <- use exactly one floating pin
 
 
-//EFTouch Config 
+//EFTouch Config
 #define EFTOUCH_PIN_TOUCH_FINGERPRINT 3
 #define EFTOUCH_PIN_TOUCH_NOSE 1
 
