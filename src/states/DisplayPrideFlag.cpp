@@ -105,6 +105,7 @@ void DisplayPrideFlag::run() {
                 LOG_ERROR("(DisplayPrideFlag) Invalid prideFlagModeIdx!")
                 break;
         }
+    }
 
     // Animate dragon: Rotate current flag to cycle through dragon head
     std::vector<CRGB> rotatedflag(prideFlag, prideFlag + EFLED_EFBAR_NUM);
