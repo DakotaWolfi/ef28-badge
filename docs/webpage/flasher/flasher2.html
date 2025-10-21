@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>EF28 Badge Flasher & Config (FMI)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- reuse manual styles -->
+  <link rel="stylesheet" href="../uikit.min.css" />
+  <link rel="stylesheet" href="../main.css" />
+  <link rel="stylesheet" href="../theme.css" />
+  <link rel="stylesheet" href="../responsive.css" />
+  <!-- flasher-specific overrides -->
+  <link rel="stylesheet" href="./flasher.css" />
+
+  <script type="module" src="https://unpkg.com/esp-web-tools@10.1.1/dist/web/install-button.js?module"></script>
+</head>
+<body class="no-header">
+<main>
+  <div id="content" class="wrap">
+
+    <p class="header-note">
+      This flasher is a work-in-progress but <b>usable</b>. Use Chrome/Edge on desktop over HTTPS.
+      If flashing doesn’t start, close any serial monitors. If auto-reset fails: hold <b>BOOT</b>, tap <b>EN/RST</b>, click <i>Install</i>, then release <b>BOOT</b>.
+    </p>
+
+    <h1>EF28 Badge — Flash & Configure</h1>
+
+    <div class="panel stack-lg">
+      <div class="stack">
+        <label for="variant"><b>Build variant</b></label>
+        <select id="variant">
+          <option value="no-oled" selected>No OLED display — Stable</option>
+          <option value="oled">With OLED display — Stable</option>
+          <option value="oled-beta">With OLED display — Beta</option>
+        </select>
+        <div class="small-muted">
+          Pick the variant that matches your hardware. Choosing the wrong one won’t brick the badge; the display may
+          stay off or the firmware may do extra work until you flash the correct variant.
+        </div>
+      </div>
+
+      <p>
+        <esp-web-install-button id="flashBtn" manifest="manifests/no-oled/manifest.json" baudrate="115200"></esp-web-install-button>
+      </p>
+
+      <div class="small-muted">
+        <b>Official EF flasher:</b> <a href="https://badge.cyberrats.wtf/" target="_blank" rel="noopener">https://badge.cyberrats.wtf/</a> ·
+        <b>Manual:</b> <a href="../" target="_blank" rel="noopener">Back to the badge manual</a>
+      </div>
+    </div>
+
+    <div class="panel stack-lg" style="margin-top:20px;">
+      <h2 style="margin:0;">Set Badge Name <span class="small-muted">(WIP — requires firmware support)</span></h2>
+      <p class="small-muted">After flashing (or on any supported firmware), set the owner name stored in NVS.</p>
+
+      <div class="stack">
+        <label for="badgeName"><b>Badge name</b></label>
+        <input id="badgeName" maxlength="24" placeholder="e.g., Jenna" />
+        <div><button id="writeName" class="uk-button uk-button-default">Write Name</button></div>
+        <pre id="log"></pre>
+      </div>
+    </div>
+
+    <p class="small-muted" style="margin-top:16px;">
+      Source & custom firmware: <a href="https://github.com/DakotaWolfi/ef28-badge" target="_blank" rel="noopener">github.com/DakotaWolfi/ef28-badge</a>
+    </p>
+
+  </div>
+</main>
+
+<script type="module">
+  // Variant switching
+  const variantSel  = document.getElementById('variant');
+  const flashBtn    = document.getElementById('flashBtn');
+  const logEl       = document.getElementById('log');
+  const badgeNameEl = document.getElementById('badgeName');
+
+  const manifests = {
+    "no-oled":   "manifests/no-oled/manifest.json",
+    "oled":      "manifests/oled/manifest.json",
+    "oled-beta": "manifests/oled-beta/manifest.json" // point to your beta manifest
+  };
+
+  variantSel.addEventListener('change', () => {
+    const m = manifests[variantSel.value] || manifests["no-oled"];
+    flashBtn.setAttribute('manifest', m);
+  });
+
+  // Simple name writer over Web Serial: "SET NAME:<ascii>\n"
+  document.getElementById('writeName').addEventListener('click', async () => {
+    const name = (badgeNameEl.value || "").trim();
+    if (!name) return appendLog("Please enter a name first.");
+
+    let port;
+    try {
+      port = await navigator.serial.requestPort();
+      await port.open({ baudRate: 115200 });
+
+      const writer = port.writable.getWriter();
+      await writer.write(new TextEncoder().encode(`SET NAME:${name}\n`));
+      writer.releaseLock();
+
+      const reader = port.readable.getReader();
+      const decoder = new TextDecoder();
+      let result = "", deadline = Date.now() + 2000;
+
+      while (Date.now() < deadline) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        result += decoder.decode(value, { stream: true });
+        if (result.includes("\n")) break;
+      }
+      reader.releaseLock();
+      await port.close();
+
+      appendLog(result.trim() ? `Device replied: ${result.trim()}` : "No response. Is the firmware listening for SET NAME?");
+    } catch (e) {
+      appendLog("Error: " + (e?.message || e));
+      try { if (port) await port.close(); } catch(_) {}
+    }
+  });
+
+  function appendLog(s) {
+    logEl.textContent += s + "\n";
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+</script>
+</body>
+</html>

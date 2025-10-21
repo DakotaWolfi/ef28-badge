@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>EF28 Badge — Android Experimental Flasher (esptool-js)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="stylesheet" href="../uikit.min.css" />
+  <link rel="stylesheet" href="../main.css" />
+  <link rel="stylesheet" href="../theme.css" />
+  <link rel="stylesheet" href="../responsive.css" />
+  <style>
+    body { padding: 1rem; }
+    .panel { border: 1px solid var(--muted-border,#ddd); border-radius: 10px; padding: 16px; }
+    .row { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+    .stack > * { margin: 6px 0; }
+    .muted { opacity: .8; font-size: .9em; }
+    pre { background: #0b0b0b; color: #d8d8d8; padding: 10px; border-radius: 8px; max-height: 260px; overflow:auto; }
+    .progress { height: 10px; background: #eee; border-radius: 6px; overflow: hidden; }
+    .bar { height: 100%; width: 0%; background: #4caf50; }
+    .ok { color: #0a0; } .err { color: #c00; }
+    .pill { display:inline-block; padding:.2rem .5rem; border:1px solid #aaa; border-radius:999px; font-size:.85em; }
+  </style>
+</head>
+<body class="no-header">
+<main class="wrap">
+  <h1>EF28 Badge — Android Experimental Flasher</h1>
+  <p class="muted">Powered by <code>esptool-js</code>. This is experimental and intended for phones where Chrome exposes Web Serial. If your phone doesn’t show a port,
+     use the normal flasher (desktop) or Espressif’s Android app.</p>
+
+  <div class="panel stack">
+    <div><span id="webserialStatus" class="pill">Checking Web Serial…</span></div>
+
+    <div class="row">
+      <div class="stack">
+        <h3 style="margin:0;">Flash: Single combined image</h3>
+        <label>Combined firmware (.bin, offset <code>0x0000</code>)</label>
+        <input id="binCombined" type="file" accept=".bin" />
+        <button id="flashCombined">Flash combined @ 0x0000</button>
+        <div class="muted">Use this if your CI produces a merged image. Many Arduino builds do.</div>
+      </div>
+
+      <div class="stack">
+        <h3 style="margin:0;">Flash: Split images (ESP-IDF layout)</h3>
+        <label>bootloader.bin (<code>0x0000</code>)</label>
+        <input id="binBoot" type="file" accept=".bin" />
+        <label>partition-table.bin (<code>0x8000</code>)</label>
+        <input id="binPart" type="file" accept=".bin" />
+        <label>app.bin (<code>0x10000</code>)</label>
+        <input id="binApp" type="file" accept=".bin" />
+        <button id="flashSplit">Flash split set</button>
+        <div class="muted">Typical ESP-IDF offsets. Adjust if your project uses custom offsets.</div>
+      </div>
+    </div>
+
+    <div class="stack" style="margin-top: 12px;">
+      <label>Baud</label>
+      <select id="baud">
+        <option>115200</option>
+        <option selected>921600</option>
+        <option>1500000</option>
+      </select>
+      <div class="progress"><div id="bar" class="bar"></div></div>
+      <div id="progressTxt" class="muted">Progress: 0%</div>
+    </div>
+
+    <div class="stack">
+      <div class="row">
+        <div class="stack">
+          <h3 style="margin:0;">Connect / Reset</h3>
+          <button id="connectBtn">Pick Port</button>
+          <button id="resetBtn" disabled>Hard reset</button>
+          <div class="muted">Tip: If auto-bootloader fails, hold <b>BOOT</b>, tap <b>EN/RST</b>, then click <i>Pick Port</i> and release <b>BOOT</b>.</div>
+        </div>
+        <div class="stack">
+          <h3 style="margin:0;">Console</h3>
+          <div class="muted">Open a console to read logs and send commands (e.g. <code>SET NAME:Jenna</code>).</div>
+          <button id="openConsole">Open Console</button>
+          <div class="row">
+            <input id="consoleInput" placeholder="Type and press Send" />
+            <button id="consoleSend">Send</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <pre id="log"></pre>
+  </div>
+
+  <p class="muted">Back to desktop flasher: <a href="./index.html">EF28 Badge — Flash &amp; Configure</a></p>
+	
+	<button id="flashFromServer">Flash from server (oled-beta)</button>
+<pre id="srvLog"></pre>
+
+</main>
+
+<script type="module">
+  // Import esptool-js (make sure this path exists in your repo)
+  const { ESPLoader } = await import('https://unpkg.com/esptool-js@latest/dist/web/index.js');
+
+  // UI refs
+  const logEl = document.getElementById('log');
+  const barEl = document.getElementById('bar');
+  const progressTxt = document.getElementById('progressTxt');
+  const statusEl = document.getElementById('webserialStatus');
+  const baudSel = document.getElementById('baud');
+
+  const connectBtn = document.getElementById('connectBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const flashCombinedBtn = document.getElementById('flashCombined');
+  const flashSplitBtn = document.getElementById('flashSplit');
+
+  const binCombined = document.getElementById('binCombined');
+  const binBoot = document.getElementById('binBoot');
+  const binPart = document.getElementById('binPart');
+  const binApp = document.getElementById('binApp');
+
+  const openConsoleBtn = document.getElementById('openConsole');
+  const consoleInput = document.getElementById('consoleInput');
+  const consoleSend = document.getElementById('consoleSend');
+
+  // State
+  let port = null;
+  let reader = null;
+  let writer = null;
+  let consoleOpen = false;
+
+  const log = (s, cls) => {
+    const line = document.createElement('div');
+    if (cls) line.className = cls;
+    line.textContent = s;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+  };
+
+  function setProgress(p) {
+    const pct = Math.max(0, Math.min(100, Math.round(p)));
+    barEl.style.width = pct + '%';
+    progressTxt.textContent = `Progress: ${pct}%`;
+  }
+
+  // Basic Web Serial availability check
+  if (!('serial' in navigator)) {
+    statusEl.textContent = 'Web Serial not available on this browser/device';
+    statusEl.className = 'pill err';
+  } else {
+    statusEl.textContent = 'Web Serial available';
+    statusEl.className = 'pill ok';
+  }
+
+  async function pickPort() {
+    try {
+      port = await navigator.serial.requestPort();
+      await port.open({ baudRate: Number(baudSel.value) || 115200 });
+      log('Port open.');
+      resetBtn.disabled = false;
+      // pre-create writer for console use
+      writer = port.writable.getWriter();
+    } catch (e) {
+      log('Open error: ' + (e?.message || e), 'err');
+    }
+  }
+
+  async function hardReset() {
+    if (!port) return;
+    try {
+      // Toggle DTR/RTS to reset (ESP32-S3 typically uses EN/BOOT via RTS/DTR mapping)
+      await port.setSignals({ dataTerminalReady: false, requestToSend: true });
+      await new Promise(r => setTimeout(r, 100));
+      await port.setSignals({ dataTerminalReady: true, requestToSend: false });
+      log('Hard reset toggled.');
+    } catch (e) {
+      log('Reset error: ' + (e?.message || e), 'err');
+    }
+  }
+
+  async function ensureBootloader() {
+    // Many boards enter bootloader automatically via esptool, but if needed:
+    // DTR low + RTS high tends to hold in bootloader; then release appropriately.
+    try {
+      await port.setSignals({ dataTerminalReady: false, requestToSend: true });
+      await new Promise(r => setTimeout(r, 50));
+      await port.setSignals({ dataTerminalReady: true, requestToSend: false });
+    } catch (_) {}
+  }
+
+  // Helper to read a file as Uint8Array
+  async function readFile(file) {
+    const buf = await file.arrayBuffer();
+    return new Uint8Array(buf);
+  }
+
+  async function flashSegments(segments) {
+    if (!port) await pickPort();
+    if (!port.readable || !port.writable) {
+      log('Port not readable/writable.', 'err'); return;
+    }
+
+    setProgress(0);
+    log('Connecting to ROM bootloader...');
+    const termLogger = (msg) => { /* quiet or: log(msg); */ };
+
+    // ESPLoader needs a minimal transport shim – the web build exposes an internal transport.
+    // In the current esptool-js web build, you can pass the raw SerialPort and it handles transport.
+    const loader = new ESPLoader({
+      serial: port,
+      baudrate: Number(baudSel.value) || 115200,
+      terminal: { writeLine: termLogger }
+    });
+
+    try {
+      await ensureBootloader();
+      await loader.main();
+      const chip = await loader.chip.getChipName();
+      log(`Connected to: ${chip}`);
+
+      // Optional: read flash ID
+      try {
+        const id = await loader.readFlashId();
+        log(`Flash ID: 0x${id.toString(16)}`);
+      } catch { /* optional */ }
+
+      // Flash!
+      const totalBytes = segments.reduce((a,[,data]) => a + data.length, 0);
+      let written = 0;
+      const onProgress = (bytesWrittenDelta) => {
+        written += bytesWrittenDelta;
+        setProgress((written / totalBytes) * 100);
+      };
+
+      // writeFlash(segments, flashSize, partitions, compress, encrypt, onProgress)
+      await loader.writeFlash(segments, 'keep', 'keep', true, false, (_, __, delta) => onProgress(delta));
+      setProgress(100);
+      log('Flash complete!', 'ok');
+
+      // Reset into app
+      await loader.hardReset();
+      log('Reset done. App should be running.', 'ok');
+    } catch (e) {
+      log('Flash error: ' + (e?.message || e), 'err');
+    }
+  }
+
+  // Buttons
+  connectBtn.addEventListener('click', pickPort);
+  resetBtn.addEventListener('click', hardReset);
+
+  flashCombinedBtn.addEventListener('click', async () => {
+    const f = binCombined.files?.[0];
+    if (!f) return log('Pick a combined .bin first.');
+    const image = await readFile(f);
+    await flashSegments([[0x0000, image]]);
+  });
+
+  flashSplitBtn.addEventListener('click', async () => {
+    const fBoot = binBoot.files?.[0];
+    const fPart = binPart.files?.[0];
+    const fApp  = binApp.files?.[0];
+    if (!fBoot || !fPart || !fApp) return log('Select bootloader, partition-table, and app bins.');
+    const [boot, part, app] = await Promise.all([readFile(fBoot), readFile(fPart), readFile(fApp)]);
+    await flashSegments([
+      [0x0000,  boot],
+      [0x8000,  part],
+      [0x10000, app],
+    ]);
+  });
+
+  // --- Simple console (after flashing or anytime) ---
+  async function openConsole() {
+    if (!port) await pickPort();
+    if (consoleOpen) return;
+
+    consoleOpen = true;
+    log('Console open (press Reset if you need to restart the app).');
+
+    reader = port.readable.getReader();
+    const decoder = new TextDecoder();
+
+    (async () => {
+      try {
+        while (consoleOpen) {
+          const { value, done } = await reader.read();
+          if (done || !value) break;
+          log(decoder.decode(value), null);
+        }
+      } catch (e) {
+        log('Console read error: ' + (e?.message || e), 'err');
+      } finally {
+        try { reader.releaseLock(); } catch(_) {}
+        consoleOpen = false;
+      }
+    })();
+  }
+
+  async function sendLine() {
+    try {
+      const txt = (consoleInput.value || '') + '\n';
+      if (!writer) writer = port.writable.getWriter();
+      await writer.write(new TextEncoder().encode(txt));
+      consoleInput.value = '';
+    } catch (e) {
+      log('Send error: ' + (e?.message || e), 'err');
+    }
+  }
+
+  openConsoleBtn.addEventListener('click', openConsole);
+  consoleSend.addEventListener('click', sendLine);
+  consoleInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendLine(); });
+</script>
+	<script type="module">
+  // If you already import ESPLoader elsewhere, keep that. Otherwise:
+  // const { ESPLoader } = await import('https://unpkg.com/esptool-js@latest/dist/web/index.js');
+
+  const srvLogEl = document.getElementById('srvLog');
+  const logSrv = (s) => { srvLogEl.textContent += s + "\n"; srvLogEl.scrollTop = srvLogEl.scrollHeight; };
+
+  // Adjust this to point at the right variant folder if you want a dropdown later
+  const BASE = 'flasher/manifests/oled-beta/';
+
+  function toOffset(val) {
+    // manifest offsets can be "0x1000" or 4096; handle both
+    if (typeof val === 'string' && val.startsWith('0x')) return parseInt(val, 16);
+    return Number(val);
+  }
+
+  async function fetchJSON(url) {
+    const r = await fetch(url, { cache: 'no-store' });
+    if (!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
+    return await r.json();
+  }
+
+  async function fetchBin(url) {
+    const r = await fetch(url, { cache: 'no-store' });
+    if (!r.ok) throw new Error(`HTTP ${r.status} for ${url}`);
+    const buf = await r.arrayBuffer();
+    return new Uint8Array(buf);
+  }
+
+  async function loadSegmentsFromManifest(manifestUrl) {
+    const manifest = await fetchJSON(manifestUrl);
+    // esp-web-tools manifests usually have { builds: [ { parts: [ { path, offset }, ... ] } ] }
+    const build = (manifest.builds && manifest.builds[0]) || manifest; // be tolerant
+    const parts = build.parts || [];
+    if (!parts.length) throw new Error('No parts listed in manifest');
+
+    const segments = [];
+    for (const p of parts) {
+      const path = p.path || p.file || p.url;
+      const offset = toOffset(p.offset);
+      if (!path || isNaN(offset)) throw new Error('Bad part entry in manifest: ' + JSON.stringify(p));
+      const url = new URL(path, manifestUrl).toString(); // resolves relative to manifest
+      logSrv(`Fetching ${path} @ 0x${offset.toString(16)}`);
+      const data = await fetchBin(url);
+      segments.push([offset, data]);
+    }
+    return segments;
+  }
+
+  async function pickOrReusePort(existingPort) {
+    if (existingPort) return existingPort;
+    if (!('serial' in navigator)) throw new Error('Web Serial not available on this device/browser');
+    const port = await navigator.serial.requestPort();
+    await port.open({ baudRate: 921600 }); // you can expose a selector; drop to 115200 if you see sync issues
+    return port;
+  }
+
+  async function flashFromServer() {
+    let port;
+    try {
+      logSrv('Loading manifest…');
+      const segments = await loadSegmentsFromManifest(location.origin + '/' + BASE + 'manifest.json');
+
+      logSrv('Requesting serial port…');
+      port = await pickOrReusePort();
+
+      // esptool-js: minimal usage
+      const { ESPLoader } = await import('https://unpkg.com/esptool-js@latest/dist/web/index.js');
+      const loader = new ESPLoader({
+        serial: port,
+        baudrate: 921600,
+        terminal: { writeLine: (m) => {/* quiet or logSrv(m) */} }
+      });
+
+      // Try to tickle bootloader pins (many boards don’t need this)
+      try {
+        await port.setSignals({ dataTerminalReady: false, requestToSend: true });
+        await new Promise(r => setTimeout(r, 50));
+        await port.setSignals({ dataTerminalReady: true, requestToSend: false });
+      } catch (_) {}
+
+      logSrv('Syncing with ROM bootloader…');
+      await loader.main();
+      const chip = await loader.chip.getChipName();
+      logSrv('Connected to: ' + chip);
+
+      // Optional: read flash ID
+      try {
+        const id = await loader.readFlashId();
+        logSrv('Flash ID: 0x' + id.toString(16));
+      } catch {}
+
+      // Progress tracker
+      const total = segments.reduce((a,[,d]) => a + d.length, 0);
+      let written = 0;
+      const onProg = (_addr, _stg, delta) => {
+        written += delta;
+        const pct = Math.round((written / total) * 100);
+        logSrv(`Progress: ${pct}%`);
+      };
+
+      logSrv('Flashing…');
+      await loader.writeFlash(segments, 'keep', 'keep', true, false, onProg);
+      logSrv('Flash complete. Resetting…');
+      await loader.hardReset();
+      logSrv('Done. App should be running.');
+    } catch (e) {
+      logSrv('Error: ' + (e?.message || e));
+    } finally {
+      // don’t forcibly close port; user might want to open console after
+    }
+  }
+
+  document.getElementById('flashFromServer').addEventListener('click', flashFromServer);
+</script>
+</body>
+</html>

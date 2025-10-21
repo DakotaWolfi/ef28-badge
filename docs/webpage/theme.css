@@ -1,0 +1,119 @@
+:root {
+    --ef-palette-1: #0ff;
+    --ef-palette-2: #000;
+    --ef-palette-3: #f0f;
+    --ef-palette-4: #f80;
+
+    --test-1: #052b2f;
+    --test-2: #073438;
+    --test-3: #0e4b50;
+    --test-4: #2d8f85;
+    --test-5: #637c54;
+
+    --header-height: 100px;
+}
+
+@font-face {
+    /* Hemi Head 426 by Larabie Fonts
+    source: https://blogfonts.com/hemi-head-426.font
+    license: ../fonts/read_me.html */
+    font-family: 'hemihead';
+    src: url(../fonts/HEMIHEAD.TTF);
+}
+
+header h1,
+nav h3,
+[class^="uk-countdown-"],
+#content h1,
+footer h3,
+:target {
+    font-family: 'hemihead', sans-serif;
+    text-shadow: 0 0 6px var(--ef-palette-3);
+}
+header h1 {
+    margin-top: 12px;
+}
+.ef-menubutton {
+    width: 75px;
+    height: calc(1em - 4px);
+    top: 11px;
+    filter: drop-shadow(0 0 3px var(--ef-palette-3));
+}
+label#nav-button:hover ~ * .ef-menubutton {
+	opacity: 1;
+    filter: drop-shadow(0 0 6px var(--ef-palette-3));
+}
+
+main {
+    background-color: #000;
+    background-image: url('../img/ef28_by_rudzik.jpg');
+}
+#content {
+    --background: var(--test-1);
+}
+#ef-condetails {
+    writing-mode: vertical-lr;
+    transform: rotate(-180deg);
+}
+#ef-condetails > * {
+    position: relative;
+    text-align: right;
+    left: 70px;
+}
+#ef-condetails > .efcd-1 {
+    font-size: 2em;
+}
+#ef-condetails > .efcd-2 {
+    font-size: 1.2em;
+}
+main a {
+	color: var(--ef-palette-1);
+}
+main a:hover {
+	color: var(--ef-palette-1);
+	text-decoration: underline;
+}
+*[class^=uk-card] a {
+    color: var(--ef-palette-2);
+}
+*[class^=uk-card] a:hover {
+    color: var(--ef-palette-2);
+}
+footer a {
+    color: var(--ef-palette-1);
+}
+footer a:hover {
+    color: var(--ef-palette-1);
+    text-decoration: underline;
+}
+nav a {
+    color: #fff;
+}
+nav a:hover {
+	color: #fff;
+    text-decoration: underline;
+}
+nav h3,
+*[class^=uk-countdown-] {
+    text-shadow: 0 0 6px var(--ef-palette-3);
+}
+nav hr {
+    box-shadow: 0 0 6px 1px var(--ef-palette-3);
+}
+.uk-icon-button {
+    color: var(--ef-palette-2);
+}
+.uk-icon-button:hover {
+    color: var(--ef-palette-1);
+}
+
+.uk-grid-divider > :not(.uk-first-column)::before,
+.uk-grid-divider.uk-grid-stack > .uk-grid-margin::before {
+    box-shadow: 0 0 8px 1px var(--ef-palette-1);
+}
+
+@media (min-width: 960px) {
+    main {
+        background-position-x: 80px;
+    }
+}
