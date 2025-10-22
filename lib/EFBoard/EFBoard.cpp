@@ -160,10 +160,29 @@ const float EFBoardClass::getBatteryVoltage() {
     constexpr float R2 = 100.0f;
     constexpr float ADC_MAX_VALUE = 4095.0f;
     constexpr float ADC_REF_VOLTAGE = 3.5f; // Reference voltage for ADC. Should be 3.3V, but the results are wonky. 3.5 works better
-
     constexpr float voltage_divider_factor = (R1 + R2) / R2;
+    constexpr int NUM_SAMPLES = 10;
+
+    // Static variables retain their values between function calls
+    static float samples[NUM_SAMPLES] = {0.0f};
+    static int index = 0;
+    static int count = 0;
+
     float battery_voltage = (analogRead(EFBOARD_PIN_VBAT) * (ADC_REF_VOLTAGE / ADC_MAX_VALUE)) * voltage_divider_factor;
-    return battery_voltage;
+
+    // Insert into circular buffer
+    samples[index] = raw_voltage;
+    index = (index + 1) % NUM_SAMPLES;
+    if (count < NUM_SAMPLES) count++;
+
+    // Compute average
+    float sum = 0.0f;
+    for (int i = 0; i < count; i++) {
+        sum += samples[i];
+    }
+
+    float average_voltage = sum / count;
+    return average_voltage;
 }
 
 const bool EFBoardClass::isBatteryPowered() {
