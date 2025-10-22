@@ -12,7 +12,7 @@
 //EFBord Config
 // The Step-Down converter still manages to hold 3.00V with 3,32V input. The ESP needs 3.0V at least
 //#define EFBOARD_FIRMWARE_VERSION "v2024.09.07"
-#define EFBOARD_FIRMWARE_VERSION "v2025.10.21"
+#define EFBOARD_FIRMWARE_VERSION "v2025.10.22"
 
 #define EFBOARD_PIN_VBAT 10                //!< Pin the analog voltage divider for V_BAT is connected to (ADC1_CH9)
 // --- choose battery type ---
