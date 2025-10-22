@@ -348,21 +348,21 @@ void EFDisplayClass::bootupAnimation() {
     eyeOutline();
     u8g2.sendBuffer();
     delay(200);
-
+    //ligth eye up red 
     for(int i = 0; i < 255; i++) {
         EFLed.setDragonEye(CRGB(i, 0, 0));
+        delay(3);
+    }//dim down red eye 
+    for(int i = 255; i > 0; i--) {
+        EFLed.setDragonEye(CRGB(i, 0, 0));
+        delay(2);
+    }//open purpel white eye 
+    for(int i = 0; i < 60; i++) {
+    //EFLed.setDragonEye(CRGB(60, 60, 120));
+        EFLed.setDragonEye(CRGB(i, i, i*2));
         delay(5);
     }
-
-    EFLed.setDragonEye(CRGB(60, 60, 120));
-    delay(2000);
-/*
-    for(int i = 0; i< 12; i++) {
-        u8g2.drawStr(0, 10, "000001111100000");
-    }
-    u8g2.drawStr(0, 20, "111110000011111");
-    */
-    u8g2.sendBuffer();
+    delay(200);
 }
 
 void EFDisplayClass::audioInit() {
