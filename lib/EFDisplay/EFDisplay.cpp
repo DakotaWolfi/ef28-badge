@@ -348,6 +348,7 @@ void EFDisplayClass::bootupAnimation() {
     eyeOutline();
     u8g2.sendBuffer();
     delay(200);
+    /* move Led Bootup Anim to EFLed
     //ligth eye up red 
     for(int i = 0; i < 255; i++) {
         EFLed.setDragonEye(CRGB(i, 0, 0));
@@ -363,6 +364,7 @@ void EFDisplayClass::bootupAnimation() {
         delay(5);
     }
     delay(200);
+    */
 }
 
 void EFDisplayClass::audioInit() {
