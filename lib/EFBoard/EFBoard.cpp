@@ -171,7 +171,7 @@ const float EFBoardClass::getBatteryVoltage() {
     float battery_voltage = (analogRead(EFBOARD_PIN_VBAT) * (ADC_REF_VOLTAGE / ADC_MAX_VALUE)) * voltage_divider_factor;
 
     // Insert into circular buffer
-    samples[index] = raw_voltage;
+    samples[index] = battery_voltage;
     index = (index + 1) % NUM_SAMPLES;
     if (count < NUM_SAMPLES) count++;
 
