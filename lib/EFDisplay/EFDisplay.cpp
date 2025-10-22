@@ -127,13 +127,12 @@ void EFDisplayClass::loop() {
 
 
 void EFDisplayClass::updatePowerInfo() const {
-    if(battery_update_counter == 0) {
+    if(battery_update_counter < 10) {
         battery_percentage = EFBoard.getBatteryCapacityPercent();
         battery_voltage = EFBoard.getBatteryVoltage();
-    }else if(battery_update_counter % 1000 == 0) {
-        battery_update_counter = 0;
+        battery_update_counter = 1000;
     }
-    battery_update_counter++;
+    battery_update_counter--;
     String batt = "BAT:" + String(battery_percentage) + "%";
 
     if(!EFBoard.isBatteryPowered()) {
