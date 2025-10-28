@@ -25,12 +25,49 @@
 
 // ------------------ Config ------------------
 #define EF_BLEFH_MFGID       0x28EF   // little-endian in ManufacturerData
+#define EF_BLEFH_VERSION     0x02     // new v2 format
 #define EF_BLEFH_MAX_PEERS   16
 #define EF_BLEFH_STALE_MS    7000 //1500
 #define EF_BLEFH_PURGE_MS    30000
 #define EF_BLEFH_RSSI_MIN    -90
 #define EF_BLEFH_RSSI_MAX    -40
 #define EF_BLEFH_EMA_A       0.30f    // RSSI smoothing
+
+// ---- Fox Hunt v2 payload layout ----
+/*
+Bytes (little-endian in the payload you build)
+0..1  : Manufacturer ID = 0x28EF  (lo, hi)   // BLE standard expects this first
+2     : ProtoVer = 0x02                      // NEW: versioned format
+3     : Type    = 'D' (=Badge) or 'B' (=Beacon)
+4..7  : DevID   = 32-bit ID (LE)             // your current MAC-derived or fixed
+8     : Flags   = bitfield                    // see below
+9     : TxPwr   = int8 (dBm)                  // optional hint for ranging
+[10..11]: CRC8/16 (optional)                  // you can skip at first; reserve for later
+
+Flags (byte 8)
+
+bit0: CONNECTABLE (0=non-connectable adv, 1=connectable)
+bit1: STATIONARY (0=moving/handheld, 1=fixed beacon)
+bit2: LOWBATT (sender battery is low)
+bit3: HINT_NAME (scan response likely has a GAP name)
+bits4..7: reserved (0)
+
+*/
+// total without CRC: 10 bytes of MSD payload (plus the 2-byte MFG ID header the stack adds internally)
+
+// [0..1] MFGID (0x28EF, LE)  | [2] VER=0x02 | [3] TYPE ('D' badge, 'B' beacon)
+// [4..7] DEV_ID (LE)         | [8] FLAGS    | [9] TXPWR (dBm, int8_t)
+// Flags bitfield (if using later)
+#define EF_BLEFH_V2_MINLEN   10
+#define EF_BLEFH_TYPE_BADGE  'D'
+#define EF_BLEFH_TYPE_BEACON 'B'
+#define EF_BLEFH_F_CONNECTABLE  (1u<<0)
+#define EF_BLEFH_F_STATIONARY   (1u<<1)
+#define EF_BLEFH_F_LOWBATT      (1u<<2)
+#define EF_BLEFH_F_HINT_NAME    (1u<<3)
+
+// --- constants ---
+enum PeerKind : uint8_t { PEER_UNKNOWN=0, PEER_BADGE=1, PEER_BEACON=2 };
 
 // derive a 32-bit Badge ID from MAC (or change to your own global)
 static uint32_t ef_defaultBadgeIdFromMac() {
@@ -59,6 +96,8 @@ static uint32_t s_hornBlinkMs = 0;
 static bool     s_hornBlinkOn = false;
 static std::string s_devName;  // our own GAP name for logs
 
+
+
 // ---------------- internal model ----------------
 struct FHPeer {
   bool used = false;
@@ -68,6 +107,10 @@ struct FHPeer {
   int lastRaw = -127;    // last raw
   uint32_t lastSeen = 0; // millis()
   std::string name; // store name
+
+  PeerKind kind = PEER_UNKNOWN;
+  uint8_t flags = 0;
+  int8_t  txPower = 0;
 };
 
 // File-scope state (keeps header simple)
@@ -122,7 +165,7 @@ static int strongestFresh() {
   int best=-1, bestR=-999;
   for (int i=0;i<EF_BLEFH_MAX_PEERS;i++)
     if (fresh(s_peers[i]) && s_peers[i].rssi > bestR) {
-       best = i; bestR = s_peers[i].rssi;
+      best = i; bestR = s_peers[i].rssi;
     }
   return best;
 }
@@ -191,38 +234,53 @@ static void applyStateIndicators(bool targetFresh) {
   }
 }
 
-// Adapter so we don’t need BLE callbacks in the header
 class FHScanCb : public BLEAdvertisedDeviceCallbacks {
   void onResult(BLEAdvertisedDevice dev) override {
     if (!dev.haveManufacturerData()) return;
-    std::string md = dev.getManufacturerData();
-    if (md.size() < 6) return;
+    const std::string md = dev.getManufacturerData();
+    if (md.size() < EF_BLEFH_V2_MINLEN) return;   // v2 only
 
-    uint16_t mid = (uint8_t)md[0] | ((uint8_t)md[1] << 8);
+    const uint8_t* p = (const uint8_t*)md.data();
+    const uint16_t mid = (uint16_t)p[0] | ((uint16_t)p[1] << 8);
     if (mid != EF_BLEFH_MFGID) return;
 
-    uint32_t id; memcpy(&id, md.data()+2, 4);
-    if (id == s_myBadgeId) return; // skip self
+    const uint8_t ver = p[2];
+    if (ver != EF_BLEFH_VERSION) return;          // drop legacy entirely
 
-    int rssi = dev.getRSSI();
-    BLEAddress addr = dev.getAddress();
+    const uint8_t type = p[3];
+    uint32_t id; memcpy(&id, p + 4, 4);
+    if (id == s_myBadgeId) return;                // skip self
 
-    int idx = findOrAlloc(id, addr);
-    uint32_t now = millis();
+    const uint8_t flags = p[8];
+    const int8_t  txpwr = (int8_t)p[9];
+
+    const int rssi = dev.getRSSI();
+    const BLEAddress addr = dev.getAddress();
+
+    const int idx = findOrAlloc(id, addr);
+    const uint32_t now = millis();
 
     s_peers[idx].lastRaw = rssi;
     s_peers[idx].rssi = (s_peers[idx].rssi == -127)
-                        ? rssi
-                        : (int)(EF_BLEFH_EMA_A * rssi + (1.0f - EF_BLEFH_EMA_A) * s_peers[idx].rssi);
+      ? rssi
+      : (int)(EF_BLEFH_EMA_A * rssi + (1.0f - EF_BLEFH_EMA_A) * s_peers[idx].rssi);
+
     s_peers[idx].lastSeen = now;
-     //grab human-readable GAP name if present in scan response
+    s_peers[idx].flags = flags;
+    s_peers[idx].txPower = txpwr;
+    s_peers[idx].kind = (type == EF_BLEFH_TYPE_BEACON) ? PEER_BEACON
+                      : (type == EF_BLEFH_TYPE_BADGE)  ? PEER_BADGE
+                      : PEER_UNKNOWN;
+
     if (dev.haveName()) {
       s_peers[idx].name = dev.getName();
     }
+
     s_seenCallbacks++;
-    s_lastCbMs = millis();
+    s_lastCbMs = now;
   }
 };
+
 
 static FHScanCb s_scanCb;
 
@@ -231,7 +289,19 @@ static void startAdvertising() {
   std::string md;
   md.push_back((char)(EF_BLEFH_MFGID & 0xFF));
   md.push_back((char)((EF_BLEFH_MFGID >> 8) & 0xFF));
+  md.push_back((char)EF_BLEFH_VERSION);
+  md.push_back((char)EF_BLEFH_TYPE_BADGE);     // we’re a badge
   md.append(reinterpret_cast<const char*>(&s_myBadgeId), 4);
+
+    // flags: connectable badge, mobile device, name present
+  uint8_t flags = 0;
+  flags |= EF_BLEFH_F_CONNECTABLE;
+  // flags |= EF_BLEFH_F_STATIONARY; // not set for a wearable
+  flags |= EF_BLEFH_F_HINT_NAME;
+  md.push_back((char)flags);
+
+  // tx power hint (rough): +7 dBm for ESP32 adv
+  md.push_back((char)7);
 
   BLEAdvertising* adv = BLEDevice::getAdvertising();
 
@@ -404,15 +474,19 @@ void GameFoxHuntBle::run() {
       // line 5: NAME of locked target, else strongest (fallback to tail)
       String line5 = "No Name";
       if (idxForLabel >= 0) {
+        const char* tag =
+          (s_peers[idxForLabel].kind == PEER_BEACON) ? "[Bk] " :
+          (s_peers[idxForLabel].kind == PEER_BADGE)  ? "[Bd] " : "[?] ";
+
         if (!s_peers[idxForLabel].name.empty()) {
           // optional truncation to avoid overflow on narrow screens
           String nm = String(s_peers[idxForLabel].name.c_str());
           const int maxLen = 20; // tweak for your font/width
           if (nm.length() > maxLen) nm = nm.substring(0, maxLen - 1) + "…";
-          line5 =  nm;
+          line5 = String(tag) + nm;
         } else {
-          char buf[8]; snprintf(buf, sizeof(buf), "%04X", (uint16_t)(s_peers[idxForLabel].id & 0xFFFF));
-          line5 = "Name:(" + String(buf) + ")";
+          char tail[8]; snprintf(tail, sizeof(tail), "%04X", (uint16_t)(s_peers[idxForLabel].id & 0xFFFF));
+          line5 = String(tag) + "(" + String(tail) + ")";
         }
       }
 
@@ -427,12 +501,16 @@ void GameFoxHuntBle::run() {
     const char* tgtName =
       (idxForLabel >= 0 && !s_peers[idxForLabel].name.empty())
         ? s_peers[idxForLabel].name.c_str() : "--";
+    const char* kindStr =
+    (idxForLabel >= 0 && s_peers[idxForLabel].kind == PEER_BEACON) ? "beacon" :
+    (idxForLabel >= 0 && s_peers[idxForLabel].kind == PEER_BADGE)  ? "badge"  : "unk";
 
-    LOGF_INFO("[FoxHunt] peers=%d strongest=%d rssi=%d locked=%s tgtName=\"%s\" cbps=%lu scans=%lu\n",
+    LOGF_INFO("[FoxHunt] peers=%d strongest=%d rssi=%d locked=%s tgtKind=%s tgtName=\"%s\" cbps=%lu scans=%lu\n",
               freshCnt,
               idxStrong,
               (idxStrong >= 0 ? s_peers[idxStrong].rssi : -127),
               (s_lockActive ? "yes" : "no"),
+              kindStr,
               tgtName,
               (unsigned long)cb,
               (unsigned long)s_scanCycles);
