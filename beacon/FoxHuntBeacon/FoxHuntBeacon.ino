@@ -2,19 +2,20 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <BLEDevice.h>  // from the ESP32 core (not external lib)
+#include <esp_random.h>     // preferred on 3.x cores
 
 #include <Adafruit_NeoPixel.h>
-#include <Wire.h>
 #include "battery_icons.h"
-#include <U8g2lib.h>
+#include <Wire.h>
+//#include <SPI.h>        // <-- add this line
+//#define U8X8_USE_PINS 1
+//#define U8X8_HAVE_HW_SPI 1
+#include <U8g2lib.h>    // <-- must come after SPI
 
-// ---------- board wiring ----------
-#define LED_PIN_WS2812 48
-#define LED_COUNT 1
 
-Adafruit_NeoPixel pixel(LED_COUNT, LED_PIN_WS2812, NEO_GRB + NEO_KHZ800);
-// BOOT button for “randomize ID at boot” (hold while powering)
-#define PIN_BTN_BOOT 0  // typical on ESP32-S3 Supermini. change if needed.
+#define EFBOARD_SERIAL_DEVICE Serial    //!< Serial device to use (Serial or USBSerial)
+#define EFBOARD_SERIAL_BAUD 115200         //!< Baudrate for the serial device
+
 
 // ---------- OLED (SSD1306 128x64 I2C) ----------
 #define OLED_ENABLE 1       // set 0 to compile without OLED
@@ -24,10 +25,16 @@ Adafruit_NeoPixel pixel(LED_COUNT, LED_PIN_WS2812, NEO_GRB + NEO_KHZ800);
 #define OLED_I2C_HZ 400000
 
 #if OLED_ENABLE
-// Full-frame buffer renderer, SSD1306 128x64, hardware I2C, no reset line
-U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(
-  U8G2_R0, /* reset=*/U8X8_PIN_NONE, /* clock=*/OLED_SCL_PIN, /* data=*/OLED_SDA_PIN);
+  U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/U8X8_PIN_NONE, /* clock=*/OLED_SCL_PIN, /* data=*/OLED_SDA_PIN);
 #endif
+
+// ---------- board wiring ----------
+#define LED_PIN_WS2812 48
+#define LED_COUNT 1
+
+Adafruit_NeoPixel pixel(LED_COUNT, LED_PIN_WS2812, NEO_GRB + NEO_KHZ800);
+// BOOT button for “randomize ID at boot” (hold while powering)
+#define PIN_BTN_BOOT 0  // typical on ESP32-S3 Supermini. change if needed.
 
 // ---------- optional battery sense (off by default) ----------
 #define PIN_VBAT_ADC 8  // set to an ADC1 pin if you add a divider, else -1
@@ -224,7 +231,7 @@ static int vbatToPercent(float v) {
   return (int)(pct + 0.5f);
 }
 static const unsigned char* pickBatteryIcon(int pct, bool charging) {
-  //if (charging && pct >= 0) return image_battery_charging_bits;
+  if (charging && pct >= 0) return image_battery_charging_bits;
 
   if (pct < 0) return image_no_battery_bits;  // unknown → show empty (or make a “?” icon)
   if (pct < 10) return image_battery_0_bits;
@@ -315,7 +322,7 @@ static void oledStatus(float vbat) {
 #endif
 
 void setup() {
-  Serial.begin(115200);
+  EFBOARD_SERIAL_DEVICE.begin(EFBOARD_SERIAL_BAUD);
   delay(50);
   WiFi.mode(WIFI_OFF);
 
@@ -328,9 +335,9 @@ void setup() {
 
   // I2C / OLED
 #if OLED_ENABLE
-  Wire.begin(OLED_SDA_PIN, OLED_SCL_PIN, OLED_I2C_HZ);
+  //Wire.begin(OLED_SDA_PIN, OLED_SCL_PIN, OLED_I2C_HZ);
   u8g2.begin();
-  u8g2.setContrast(255);
+  //u8g2.setContrast(255);
 #endif
 
 #if PIN_VBAT_ADC >= 0
@@ -345,7 +352,7 @@ void setup() {
 #if PIN_VBAT_ADC >= 0
   float v0 = readVBAT();
   g_lowbatt = (v0 > 0 && v0 < VBAT_LOW_THRESHOLD_V);
-  Serial.printf("[BEACON] VBAT init: %.3f V low=%d\n", v0, g_lowbatt);
+  EFBOARD_SERIAL_DEVICE.printf("[BEACON] VBAT init: %.3f V low=%d\n", v0, g_lowbatt);
 #else
   g_lowbatt = false;
 #endif
@@ -354,7 +361,7 @@ void setup() {
   BLEDevice::init(makeName(g_devId).c_str());
   startAdvertising();
 
-  Serial.printf("[BEACON] ID=0x%08lX name=%s\n",
+  EFBOARD_SERIAL_DEVICE.printf("[BEACON] ID=0x%08lX name=%s\n",
                 (unsigned long)g_devId, makeName(g_devId).c_str());
 
   // LED & OLED splash
@@ -395,7 +402,7 @@ void loop() {
       g_lowbatt = low;
       BLEDevice::getAdvertising()->stop();
       startAdvertising();  // update LOWBATT flag
-      Serial.printf("[BEACON] VBAT=%.3f V low=%d -> flags updated\n", v, g_lowbatt);
+      EFBOARD_SERIAL_DEVICE.printf("[BEACON] VBAT=%.3f V low=%d -> flags updated\n", v, g_lowbatt);
     }
   }
 #endif

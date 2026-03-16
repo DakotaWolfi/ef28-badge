@@ -55,11 +55,7 @@ void DisplayPrideFlag::run() {
         if (this->globals->prideFlagModeIdx == 0) {
             // Cycle through all flags
             LOGF_DEBUG("(DisplayPrideFlag) Switched pride flag to: %d\r\n", flagidx);
-            #ifdef Mel
-            flagidx = (flagidx + 1) % 13;
-            #else
             flagidx = (flagidx + 1) % 12;
-            #endif
         }
     }
 
@@ -79,9 +75,6 @@ void DisplayPrideFlag::run() {
             case 9: prideFlag = EFPrideFlags::Genderqueer; break;
             case 10: prideFlag = EFPrideFlags::Nonbinary; break;
             case 11: prideFlag = EFPrideFlags::Intersex; break;
-            #ifdef Mel
-                case 12: prideFlag = EFPrideFlags::Wylieville; break;
-            #endif
         }
     } else {
         switch(this->globals->prideFlagModeIdx) {
@@ -98,9 +91,6 @@ void DisplayPrideFlag::run() {
             case 10: prideFlag = EFPrideFlags::Genderqueer; break;
             case 11: prideFlag = EFPrideFlags::Nonbinary; break;
             case 12: prideFlag = EFPrideFlags::Intersex; break;
-            #ifdef Mel
-                case 13: prideFlag = EFPrideFlags::Wylieville; break;
-            #endif
             default:
                 LOG_ERROR("(DisplayPrideFlag) Invalid prideFlagModeIdx!")
                 break;
